@@ -1,6 +1,3 @@
-Contrasty
-=========
-
 Introduction
 ------------
 

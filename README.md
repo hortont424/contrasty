@@ -1,8 +1,7 @@
 Introduction
 ------------
 
-Contrasty uses local contrast detection to construct an approximate depth dimension given a sequence of images taken with varying focal distances. Basically, it uses information gleaned from having a shallow depth-of-field to recreate
-the scene being photographed in faux-3D.
+Contrasty uses local contrast detection to construct an approximate depth dimension given a sequence of images taken with varying focal distances. Basically, it uses information gleaned from having a shallow depth-of-field to recreate the scene being photographed in faux-3D.
 
 Contrasty also implements three mechanisms for visualizing the recreated scene:
 

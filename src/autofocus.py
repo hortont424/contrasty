@@ -11,4 +11,6 @@ def contrastFilter(image, size=3):
     each other pixel in the environment.
     """
 
-    log("Something happened here!!", priority=Priority.LOW)
+    lumaImage = image.convert("L")
+
+    return lumaImage

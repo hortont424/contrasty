@@ -5,9 +5,11 @@ from PIL import Image
 import autofocus
 
 def main():
-    image = Image.new("RGBA", (100, 100))
+    notInFocus = Image.open("/Users/hortont/Desktop/focus/1/1.jpg")
+    inFocus = Image.open("/Users/hortont/Desktop/focus/1/7.jpg")
 
-    filteredImage = autofocus.contrastFilter(image)
+    notInFocusFiltered = autofocus.contrastFilter(notInFocus)
+    notInFocusFiltered.show()
 
 if __name__ == '__main__':
     main()

@@ -1,8 +1,13 @@
-def sample_function(a, b):
-    """
-    this is a sample_function (testing documentation)
+#!/usr/bin/env python -Wall
 
-    >>> sample_function(2, 3)
-    5
-    """
-    return a + b
+from PIL import Image
+
+import autofocus
+
+def main():
+    image = Image.new("RGBA", (100, 100))
+
+    filteredImage = autofocus.contrastFilter(image)
+
+if __name__ == '__main__':
+    main()

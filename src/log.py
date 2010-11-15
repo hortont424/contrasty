@@ -29,8 +29,9 @@ def logCall():
         def wrapper(*args, **keywords):
             startID = log("{0}()".format(f.func_name))
             startTime = time.clock()
-            f(*args, **keywords)
+            returnValue = f(*args, **keywords)
             duration = (time.clock() - startTime) * 1000
             log("{0}() [{1}] done in {2}ms".format(f.func_name, startID, duration))
+            return returnValue
         return wrapper
     return installLogging

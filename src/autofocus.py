@@ -2,7 +2,7 @@ import PIL
 
 from log import *
 
-@logCall()
+@logCall
 def contrastFilter(image, size=3):
     """
     Return an image with each pixel from *image* replaced by the local contrast in a (*size*, *size*) environment.

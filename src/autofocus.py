@@ -1,29 +1,12 @@
 import math
+import pyopencl as cl
+import numpy
+
 from PIL import Image
 
 from log import *
 
-def gaussianFunction(x, sigma):
-    """
-    Return the Gaussian function evaluated at x.
-    """
-    return math.exp(-0.5 * (x * x) / (sigma * sigma))
-
-def gaussianKernel1D(d):
-    """
-    Generate a one-dimensional Gaussian kernel.
-    """
-    r = int(math.floor(d / 2.0))
-    sigma = (1.0 / 3.0) * r + (1.0 / 6.0)
-    print [(x, gaussianFunction(x, sigma)) for x in range(-r, r + 1)]
-    return [(x, gaussianFunction(x, sigma)) for x in range(-r, r + 1)]
-
-# TODO: This is far too slow as implemented in Python; this should be rewritten in C and called from here.
-# Also, during the rewrite, we should implement 2D convolution instead of 2 1D convolutions, since I'm not
-# positive that that works here.
-
-@logCall
-def contrastFilter(image, size=5):
+def contrastFilter(image, clContext, clQueue, size=5):
     """
     Return an image with each pixel from *image* replaced by the local contrast in a (*size*, *size*) environment.
 
@@ -31,38 +14,60 @@ def contrastFilter(image, size=5):
     each other pixel in the environment.
     """
 
-    lumaImage = image.convert("L")
-    lumaPixels = lumaImage.load()
-    contrastImage = Image.new("L", lumaImage.size)
-    contrastPixels = contrastImage.load()
+    if not hasattr(contrastFilter, "program"):
+        kernelFile = open('src/contrastFilter.cl', 'r')
+        contrastFilter.program = cl.Program(clContext, kernelFile.read()).build()
+        kernelFile.close()
 
-    width, height = lumaImage.size
-    kernel = gaussianKernel1D(size)
+    image = image.convert("L")
 
-    for x in range(width):
-        for y in range(height):
-            convolveValue = 0.0
-            convolveCount = 0.0
+    mf = cl.mem_flags
+    input = numpy.asarray(image).astype(numpy.uint8)
+    output = numpy.zeros((image.size[1], image.size[0])).astype(numpy.uint8)
 
-            for (kx, kv) in kernel:
-                cx = x + kx
-                if cx > 0 and cx < width and cx != x:
-                    convolveValue += kv * abs(lumaPixels[cx, y] - lumaPixels[x, y])
-                    convolveCount += kv
+    inputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=input)
+    outputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=output)
 
-            contrastPixels[x, y] = convolveValue / convolveCount
+    contrastFilter.program.contrastFilter(clQueue, [image.size[0] * image.size[1]], None, inputBuffer, outputBuffer, numpy.uint32(image.size[0]), numpy.uint32(image.size[1])).wait()
 
-    for x in range(width):
-        for y in range(height):
-            convolveValue = 0.0
-            convolveCount = 0.0
+    cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 
-            for (ky, kv) in kernel:
-                cy = y + ky
-                if cy > 0 and cy < height and cy != y:
-                    convolveValue += kv * abs(contrastPixels[x, cy] - contrastPixels[x, y])
-                    convolveCount += kv
+    outputImage = Image.fromarray(output)
 
-            contrastPixels[x, y] = (convolveValue / convolveCount)
+    outputImage.show()
 
-    return contrastImage
+    #lumaImage = image.convert("L")
+    #lumaPixels = lumaImage.load()
+    #contrastImage = Image.new("L", lumaImage.size)
+    #contrastPixels = contrastImage.load()
+    #
+    #width, height = lumaImage.size
+    #kernel = gaussianKernel1D(size)
+    #
+    #for x in range(width):
+    #    for y in range(height):
+    #        convolveValue = 0.0
+    #        convolveCount = 0.0
+    #
+    #        for (kx, kv) in kernel:
+    #            cx = x + kx
+    #            if cx > 0 and cx < width and cx != x:
+    #                convolveValue += kv * abs(lumaPixels[cx, y] - lumaPixels[x, y])
+    #                convolveCount += kv
+    #
+    #        contrastPixels[x, y] = convolveValue / convolveCount
+    #
+    #for x in range(width):
+    #    for y in range(height):
+    #        convolveValue = 0.0
+    #        convolveCount = 0.0
+    #
+    #        for (ky, kv) in kernel:
+    #            cy = y + ky
+    #            if cy > 0 and cy < height and cy != y:
+    #                convolveValue += kv * abs(contrastPixels[x, cy] - contrastPixels[x, y])
+    #                convolveCount += kv
+    #
+    #        contrastPixels[x, y] = (convolveValue / convolveCount)
+    #
+    #return contrastImage

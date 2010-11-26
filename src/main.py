@@ -1,5 +1,6 @@
 #!/usr/bin/env python -Wall
 
+import os
 import pyopencl as cl
 
 from PIL import Image, ImageFilter
@@ -20,8 +21,16 @@ def main():
     # Load and compile the OpenCL kernel
     clQueue = cl.CommandQueue(clContext)
 
-    inFocus = Image.open("/Volumes/MCP/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/1/7.jpg")
-    inFocusFiltered = autofocus.contrastFilter(inFocus, clContext, clQueue, size=20)
+    for root, dirs, files in os.walk("/Volumes/MCP/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/1"):
+        for name in files:
+            if name == ".DS_Store":
+                continue
+
+            filename = os.path.join(root, name)
+
+            input = Image.open(filename)
+            output = autofocus.contrastFilter(input, clContext, clQueue, size=20)
+            output.save(os.path.basename(filename))
 
 if __name__ == '__main__':
     main()

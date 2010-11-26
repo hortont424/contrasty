@@ -19,6 +19,7 @@ def contrastFilter(image, clContext, clQueue, size=5):
         contrastFilter.program = cl.Program(clContext, kernelFile.read()).build()
         kernelFile.close()
 
+    # we're throwing out all sorts of information by converting to greyscale
     image = image.convert("L")
 
     mf = cl.mem_flags
@@ -34,42 +35,4 @@ def contrastFilter(image, clContext, clQueue, size=5):
 
     outputImage = Image.fromarray(output)
 
-    outputImage.show()
-
     return outputImage
-
-    #lumaImage = image.convert("L")
-    #lumaPixels = lumaImage.load()
-    #contrastImage = Image.new("L", lumaImage.size)
-    #contrastPixels = contrastImage.load()
-    #
-    #width, height = lumaImage.size
-    #kernel = gaussianKernel1D(size)
-    #
-    #for x in range(width):
-    #    for y in range(height):
-    #        convolveValue = 0.0
-    #        convolveCount = 0.0
-    #
-    #        for (kx, kv) in kernel:
-    #            cx = x + kx
-    #            if cx > 0 and cx < width and cx != x:
-    #                convolveValue += kv * abs(lumaPixels[cx, y] - lumaPixels[x, y])
-    #                convolveCount += kv
-    #
-    #        contrastPixels[x, y] = convolveValue / convolveCount
-    #
-    #for x in range(width):
-    #    for y in range(height):
-    #        convolveValue = 0.0
-    #        convolveCount = 0.0
-    #
-    #        for (ky, kv) in kernel:
-    #            cy = y + ky
-    #            if cy > 0 and cy < height and cy != y:
-    #                convolveValue += kv * abs(contrastPixels[x, cy] - contrastPixels[x, y])
-    #                convolveCount += kv
-    #
-    #        contrastPixels[x, y] = (convolveValue / convolveCount)
-    #
-    #return contrastImage

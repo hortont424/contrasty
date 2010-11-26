@@ -36,6 +36,8 @@ def contrastFilter(image, clContext, clQueue, size=5):
 
     outputImage.show()
 
+    return outputImage
+
     #lumaImage = image.convert("L")
     #lumaPixels = lumaImage.load()
     #contrastImage = Image.new("L", lumaImage.size)

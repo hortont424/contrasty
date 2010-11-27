@@ -1,6 +1,7 @@
 #!/usr/bin/env python -Wall
 
 import os
+import sys
 import pyopencl as cl
 
 from PIL import Image, ImageFilter

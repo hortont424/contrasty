@@ -21,7 +21,7 @@ def main():
     # Load and compile the OpenCL kernel
     clQueue = cl.CommandQueue(clContext)
 
-    for root, dirs, files in os.walk("/Volumes/MCP/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/1"):
+    for root, dirs, files in os.walk("/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/1"):
         for name in files:
             if name == ".DS_Store":
                 continue

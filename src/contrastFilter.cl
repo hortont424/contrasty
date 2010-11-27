@@ -19,7 +19,7 @@ __kernel void contrastFilter(__global uchar * input, __global uchar * output, ui
 
     for(int x = -r; x <= r; x++)
     {
-        float gauss = exp(-0.5f * (x * x) / (s * s));
+        float gauss = native_exp(-0.5f * (x * x) / (s * s));
         int2 frompos = imgpos;
         frompos.x += x;
 
@@ -34,7 +34,7 @@ __kernel void contrastFilter(__global uchar * input, __global uchar * output, ui
 
     for(int y = -r; y <= r; y++)
     {
-        float gauss = exp(-0.5f * (y * y) / (s * s));
+        float gauss = native_exp(-0.5f * (y * y) / (s * s));
         int2 frompos = imgpos;
         frompos.y += y;
 

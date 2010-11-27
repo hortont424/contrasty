@@ -23,12 +23,9 @@ __kernel void contrastFilter(__global uchar * input, __global uchar * output, __
 
     long totalCount = (maxX - x) + (maxY - y);
 
-    int2 frompos;
-
     for(; x <= maxX; x++)
     {
-        frompos = imgpos;
-        frompos.x = x;
+        int2 frompos = {x, imgpos.y};
 
         sample = input[indexFromImagePosition(frompos, width, height)];
 
@@ -37,8 +34,7 @@ __kernel void contrastFilter(__global uchar * input, __global uchar * output, __
 
     for(; y <= maxY; y++)
     {
-        frompos = imgpos;
-        frompos.y = y;
+        int2 frompos = {imgpos.x, y};
 
         sample = input[indexFromImagePosition(frompos, width, height)];
 

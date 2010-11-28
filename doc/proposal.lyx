@@ -1,0 +1,142 @@
+#LyX 1.6.7 created this file. For more info see http://www.lyx.org/
+\lyxformat 345
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\language english
+\inputencoding auto
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\topmargin 2.54cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\defskip medskip
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\author "" 
+\author "" 
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Final Project Proposal
+\end_layout
+
+\begin_layout Author
+Tim Horton
+\end_layout
+
+\begin_layout Standard
+I'd like to implement a system for automatically extracting regions from
+ an image based on their distance from the viewer, and then using this depth
+ data, implement interesting depth-based visualizations — for the purposes
+ of this project, faux-anaglyph-3D and off-axis focal blur.
+ I imagine an implementation which takes a series of images taken at different
+ (known) focal distances of a stationary scene (and from a fixed viewpoint),
+ and processes them in the following way:
+\end_layout
+
+\begin_layout Itemize
+To adjust for 
+\begin_inset Formula $\textbf{breathing}$
+\end_inset
+
+, use SIFT keypointing to determine an approximate linear scale factor (I've
+ only seen lenses which breathe outwards evenly from the center; the one
+ I'll be using for this experiment certainly does so) for each image; transform
+ each image by this scale factor and crop to the smallest size, so you have
+ a series of images with features precisely stacked on top of each other.
+\end_layout
+
+\begin_layout Itemize
+To determine 
+\begin_inset Formula $\textbf{depth}$
+\end_inset
+
+ for each pixel, apply a contrast measurement to localized regions (each
+ pixel's depth being determined by the contrast of 
+\begin_inset Formula $n$
+\end_inset
+
+ nearby pixels, distributed in a Gaussian manner).
+ Somewhat similar to the algorithm already used for autofocus in some cameras
+ (mine uses phase detection, but lots of point-and-shoots use contrast).
+\end_layout
+
+\begin_layout Itemize
+To create a 
+\begin_inset Formula $\textbf{layered}$
+\end_inset
+
+ image, discretize the pixels by depth into a 
+\begin_inset Formula $z$
+\end_inset
+
+-dimension.
+\end_layout
+
+\begin_layout Itemize
+To 
+\begin_inset Formula $\textbf{visualize}$
+\end_inset
+
+ the now fully-three-dimensional image data, create remapped images with
+ faux-anaglyph-3D (generate a red-blue anaglyph image using the localized
+ depth information), and off-axis focal blur (often made possible by tilt-shift
+ lenses, to great photographic effect), both of which should be relatively
+ simple to implement given a 3D image.
+\end_layout
+
+\begin_layout Standard
+Image data will come from myself, as it did in the previous homeworks.
+ I've got a really wide (f/1.4) lens which should have a thin enough depth-of-fie
+ld to easily separate a scene with varying depth; I'll just use this on
+ a tripod and take multiple exposures of the same scene at different focal
+ distances.
+ (If I'm really lucky, I'll have the ability to take video through the lens
+ before the end of the semester, and can use that to more easily capture
+ scenes).
+\end_layout
+
+\begin_layout Standard
+It seems somewhat likely that I'll end up doing some GPU-side computation,
+ because I always drop to that when I need to filter images quickly; I spent
+ a lot of time with OpenCL last semester...
+ always makes things more fun.
+\end_layout
+
+\begin_layout Standard
+I'm not sure if this will all work, but I don't see why it wouldn't (and
+ have discussed it with a few other people who seem to think it at least
+ makes sense).
+ Let me know if this isn't sufficient for the project (possible) or is too
+ crazy (or known not to work).
+\end_layout
+
+\end_body
+\end_document

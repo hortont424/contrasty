@@ -1,0 +1,277 @@
+#LyX 2.0.0beta1 created this file. For more info see http://www.lyx.org/
+\lyxformat 407
+\begin_document
+\begin_header
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\inputencoding auto
+\fontencoding global
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\use_xetex false
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 1
+\use_mathdots 1
+\cite_engine basic
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\topmargin 2.54cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Final Project Progress Report
+\end_layout
+
+\begin_layout Author
+Tim Horton
+\end_layout
+
+\begin_layout Subsubsection*
+Approach
+\end_layout
+
+\begin_layout Standard
+I mostly detailed my approach in the proposal, though a few things have
+ changed since then:
+\end_layout
+
+\begin_layout Itemize
+I'm no longer using SIFT keypointing to adjust for breathing, as that turned
+ out to be a severely overpowered and less-than-accurate technique.
+ Instead, I used a set of sample images of known focal distance to fit a
+ scaling curve.
+ To do this, I semi-manually masked out a feature in each of the frames,
+ then fed it through a 
+\begin_inset Formula $\textit{Mathematica}$
+\end_inset
+
+ script which finished the masking and then determined the center of mass
+ of the feature.
+ Taking the image at the closest focus (1 meter) and determining the linear
+ scale factor (assuming that the transformation occurs evenly outward from
+ the center) between that 
+\begin_inset Quotes eld
+\end_inset
+
+anchor
+\begin_inset Quotes erd
+\end_inset
+
+ image and each subsequent image, it then fits this to 
+\begin_inset Formula $a\frac{1}{x}+b$
+\end_inset
+
+.
+ Now, given any image, we can normalize the scale and completely correct
+ for lens breathing.
+\end_layout
+
+\begin_layout Subsubsection*
+Progress
+\end_layout
+
+\begin_layout Standard
+I've gotten a reasonable amount done so far.
+ The amount of time available to work on this is increasing as the semester
+ progresses, so I don't see any reason to think I'll have trouble finishing
+ by the end of the semester.
+\end_layout
+
+\begin_layout Itemize
+I've taken two sets of images of the same subject (my roommate's shelf)
+ at different angles.
+ Processing these is the ultimate goal — I'm going to take some sets of
+ much, much simpler scenes with which to develop the algorithm, as the complexit
+y of these images will likely make simple debugging somewhat difficult.
+\end_layout
+
+\begin_layout Itemize
+Breathing correction is mostly implemented — the lens' scale curve has been
+ determined, but I have yet to apply the scaling to the images to make a
+ consistent set (this won't be a problem, however, as it's just a simple
+ scale and crop away).
+\end_layout
+
+\begin_layout Itemize
+The local contrast filter has been implemented, first in Python, then in
+ OpenCL (which saw a 
+\begin_inset Formula $>100\times$
+\end_inset
+
+ speedup over the Python version, making the algorithm much easier to debug
+ and tinker with in a reasonable amount of time).
+ Currently I just dump the filtered images to disk, as I haven't gotten
+ around to implement the actual depth-detection algorithm (opting instead
+ to spend some time on breathing correction).
+\end_layout
+
+\begin_layout Subsubsection*
+Potential Issues
+\end_layout
+
+\begin_layout Itemize
+Determining the lens' breathing curve is incredibly computationally intensive
+ (mostly because it's written in Mathematica...
+ it takes about an hour to run to completion).
+ However, as this only needs to be done once for each lens/focal-distance-range,
+ that's OK.
+ I've already done this for the entire useful focal-distance-range of the
+ lens I'll be using for this project, so that's totally done.
+\end_layout
+
+\begin_layout Itemize
+I'm not completely sure what to do about areas of flat color.
+ Since they're a flat color, there's no contrast there no matter if the
+ area is in focus or not.
+ I have three potential solutions for this:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+Ignore this problem entirely, create images which only contain consistently-high
+-contrast elements
+\end_layout
+
+\begin_layout Itemize
+Extract low-contrast regions bounded by a region of high-contrast, and assign
+ them the same depth
+\end_layout
+
+\begin_layout Itemize
+Assign globally-low-contrast pixels a depth based on the 
+\begin_inset Quotes eld
+\end_inset
+
+closest
+\begin_inset Quotes erd
+\end_inset
+
+ (where distance measures in three dimensions, but the z-dimension is weighted
+ particularly heavily) high-contrast pixel (or an interpolation between
+ the k-nearest-neighbors)
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+Bright point-sources of light pose a problem in that when out-of-focus,
+ they appear as a bright circle (which has contrast relative to the background,
+ and appears to be in-focus (though of varying size) throughout the entire
+ range of focal distances).
+ I'm most likely going to simply use very evenly-lit non-reflective subjects
+ to avoid this problem for the purposes of this project — it would require
+ more careful analysis if this were to be continued further.
+\end_layout
+
+\begin_layout Itemize
+I currently throw away color data before performing local contrast detection.
+ This is a unrecoverable loss of data — data which could potentially help
+ contrast detection, especially for regions which transition between areas
+ of different color which happen to appear flat after being converted to
+ greyscale.
+ I'll have to fix this at some point, it's just a little bit of work.
+\end_layout
+
+\begin_layout Subsubsection*
+Code
+\end_layout
+
+\begin_layout Standard
+The code is available at 
+\begin_inset CommandInset href
+LatexCommand href
+name "https://github.com/hortont424/contrasty"
+target "https://github.com/hortont424/contrasty"
+
+\end_inset
+
+, if you want to take a look.
+ There's not a whole lot of interesting stuff there at the moment, and none
+ of the data is in the repository (it's way too big to push to GitHub).
+\end_layout
+
+\begin_layout Subsubsection*
+Data
+\end_layout
+
+\begin_layout Standard
+Unfortunately, the axes on this graph aren't labelled because that would
+ require me to re-run the breathing curve calculation, and I just don't
+ have time for that right now.
+ The y-axis here is the linear scale factor, and the x-axis is the focal
+ distance.
+\begin_inset Newline newline
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset Graphics
+	filename focus-fit.png
+	scale 30
+
+\end_inset
+
+
+\begin_inset space \hfill{}
+\end_inset
+
+
+\begin_inset space ~
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+I've attached some sample images both from the initial set and from the
+ contrast-detection algorithm's output.
+\end_layout
+
+\end_body
+\end_document

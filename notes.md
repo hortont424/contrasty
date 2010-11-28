@@ -1,1 +1,0 @@
-For points that never seem to come into focus, perhaps kNN?

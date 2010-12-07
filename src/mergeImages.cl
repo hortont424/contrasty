@@ -8,8 +8,8 @@ __kernel void mergeImages(__global uchar * input, __global uchar * output, uint 
     int gid = get_global_id(0);
     int2 imgpos = {0, 0};
 
-    imgpos.x = gid % (width * buckets);
-    imgpos.y = floor((float)gid / (float)(width * buckets));
+    imgpos.x = gid % width;
+    imgpos.y = floor((float)gid / (float)width);
 
     output[indexFromImagePosition(imgpos, width, height, buckets, currentBucket)] = input[gid];
 }

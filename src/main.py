@@ -16,7 +16,7 @@ import perlEXIF
 imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/1"
 
 def main():
-    clContext = cl.Context(dev_type=cl.device_type.GPU)
+    clContext = cl.Context(dev_type=cl.device_type.CPU)
 
     # Output device(s) being used for computation
     print "Running on:"
@@ -41,7 +41,7 @@ def main():
             index = int(filenameMatches.groups(0)[0])
             filename = os.path.join(root, name)
             tags = perlEXIF.readEXIFData(filename)
-            image = Image.open(filename)
+            image = Image.open(filename)#.resize((800,600))
 
             images[index] = (filename, image, tags)
 
@@ -53,11 +53,10 @@ def main():
     #    output = autofocus.contrastFilter(input, clContext, clQueue, size=20)
     #    output.save(os.path.basename(filename))
 
-    a = autofocus.contrastFilter(images[6][1], clContext, clQueue, size=20)
-    b = autofocus.contrastFilter(images[7][1], clContext, clQueue, size=20)
+    filtered = [autofocus.contrastFilter(images[n][1], clContext, clQueue, size=20) for n in range(1, 1 + len(images))]
 
     #c = reduce.reduceImages(a, b, clContext, clQueue)
-    c = merge.mergeImages([a, b], clContext, clQueue)
+    c = merge.mergeImages(filtered, clContext, clQueue)
     c.show()
 
 if __name__ == '__main__':

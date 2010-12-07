@@ -9,6 +9,8 @@ from PIL import Image, ImageFilter
 
 import autofocus
 import breathing
+import reduce
+import merge
 import perlEXIF
 
 imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/1"
@@ -43,13 +45,20 @@ def main():
 
             images[index] = (filename, image, tags)
 
-    for (filename, image, tags) in [images[key] for key in sorted(images.iterkeys())]:
-        input = image.copy()
-        #input = breathing.breathingCorrection(input, float(tags["FocusDistance"].split(" ")[0]))
-        #input.save(os.path.basename(filename))
+    #for (filename, image, tags) in [images[key] for key in sorted(images.iterkeys())]:
+    #    input = image.copy()
+    #    #input = breathing.breathingCorrection(input, float(tags["FocusDistance"].split(" ")[0]))
+    #    #input.save(os.path.basename(filename))
+    #
+    #    output = autofocus.contrastFilter(input, clContext, clQueue, size=20)
+    #    output.save(os.path.basename(filename))
 
-        output = autofocus.contrastFilter(input, clContext, clQueue, size=20)
-        output.save(os.path.basename(filename))
+    a = autofocus.contrastFilter(images[6][1], clContext, clQueue, size=20)
+    b = autofocus.contrastFilter(images[7][1], clContext, clQueue, size=20)
+
+    #c = reduce.reduceImages(a, b, clContext, clQueue)
+    c = merge.mergeImages([a, b], clContext, clQueue)
+    c.show()
 
 if __name__ == '__main__':
     main()

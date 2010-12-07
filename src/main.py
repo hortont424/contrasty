@@ -2,6 +2,7 @@
 
 import os
 import sys
+import re
 import pyopencl as cl
 
 from PIL import Image, ImageFilter
@@ -9,6 +10,8 @@ from PIL import Image, ImageFilter
 import autofocus
 import breathing
 import perlEXIF
+
+imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/1"
 
 def main():
     clContext = cl.Context(dev_type=cl.device_type.GPU)
@@ -24,23 +27,29 @@ def main():
     # Load and compile the OpenCL kernel
     clQueue = cl.CommandQueue(clContext)
 
-    for root, dirs, files in os.walk("/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/1"):
+    images = {}
+
+    for root, dirs, files in os.walk(imagesDir):
         for name in files:
-            if name == ".DS_Store" or name == "mask.jpg":
+            filenameMatches = re.match("([0-9]+)\.(?:jpg|jpeg)", name.lower())
+
+            if not filenameMatches:
                 continue
 
+            index = int(filenameMatches.groups(0)[0])
             filename = os.path.join(root, name)
-
             tags = perlEXIF.readEXIFData(filename)
+            image = Image.open(filename)
 
-            input = Image.open(filename)
-            input = breathing.breathingCorrection(input, float(tags["FocusDistance"].split(" ")[0]))
-            input.save(os.path.basename(filename))
+            images[index] = (filename, image, tags)
 
-            #output = autofocus.contrastFilter(input, clContext, clQueue, size=20)
-            #output.save(os.path.basename(filename))
+    for (filename, image, tags) in [images[key] for key in sorted(images.iterkeys())]:
+        input = image.copy()
+        #input = breathing.breathingCorrection(input, float(tags["FocusDistance"].split(" ")[0]))
+        #input.save(os.path.basename(filename))
 
-
+        output = autofocus.contrastFilter(input, clContext, clQueue, size=20)
+        output.save(os.path.basename(filename))
 
 if __name__ == '__main__':
     main()

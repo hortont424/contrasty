@@ -11,6 +11,7 @@ import autofocus
 import breathing
 import reduce
 import merge
+import fill
 import perlEXIF
 
 imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/3"
@@ -56,9 +57,10 @@ def main():
     filtered = [autofocus.contrastFilter(images[n][1], clContext, clQueue, size=20).resize((800,600)) for n in range(1, 1 + len(images))]
     c = merge.mergeImages(filtered, clContext, clQueue)
     r = reduce.reduceImage(c, clContext, clQueue, len(filtered))
+    f = fill.fillImage(r, clContext, clQueue)
 
-    r.show()
-    r.save("asdf.jpg")
+    f.show()
+    f.save("asdf.jpg")
 
 if __name__ == '__main__':
     main()

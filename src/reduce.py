@@ -2,6 +2,7 @@ import math
 import sys
 import pyopencl as cl
 import numpy
+import numpy.numarray.nd_image
 
 from PIL import Image
 
@@ -26,6 +27,8 @@ def reduceImage(image, clContext, clQueue, buckets):
 
     cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 
-    outputImage = Image.fromarray(output)
+    filtered = numpy.numarray.nd_image.grey_opening(output, size=(3,3))
+
+    outputImage = Image.fromarray(filtered)
 
     return outputImage

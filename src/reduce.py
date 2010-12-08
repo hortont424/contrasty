@@ -7,26 +7,22 @@ from PIL import Image
 
 from log import *
 
-def reduceImages(image1, image2, clContext, clQueue): # TODO: take all images, run multiple shots through
-    if not hasattr(reduceImages, "program"):
-        kernelFile = open('src/reduceImages.cl', 'r')
-        reduceImages.program = cl.Program(clContext, kernelFile.read()).build()
+def reduceImage(image, clContext, clQueue, buckets):
+    if not hasattr(reduceImage, "program"):
+        kernelFile = open('src/reduceImage.cl', 'r')
+        reduceImage.program = cl.Program(clContext, kernelFile.read()).build()
         kernelFile.close()
 
-    # we're throwing out all sorts of information by converting to greyscale
-    image1 = image1.convert("L")
-    image2 = image2.convert("L")
-
     mf = cl.mem_flags
-    input1 = numpy.asarray(image1).astype(numpy.uint8)
-    input2 = numpy.asarray(image2).astype(numpy.uint8)
-    output = numpy.zeros((image1.size[1], image1.size[0])).astype(numpy.uint8)
+    input = numpy.asarray(image).astype(numpy.uint8)
+    output = numpy.zeros((image.size[1], image.size[0] / buckets)).astype(numpy.uint8)
+    q = numpy.zeros((image.size[1], image.size[0] / buckets)).astype(numpy.uint8)
 
-    input1Buffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=input1)
-    input2Buffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=input2)
+    inputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=input)
     outputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=output)
+    qBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=q)
 
-    reduceImages.program.reduceImages(clQueue, [image1.size[0] * image1.size[1]], None, input1Buffer, input2Buffer, outputBuffer, numpy.uint32(image1.size[0]), numpy.uint32(image1.size[1])).wait()
+    reduceImage.program.reduceImage(clQueue, [(image.size[0] / buckets) * image.size[1]], None, inputBuffer, outputBuffer, qBuffer, numpy.uint32(image.size[0]), numpy.uint32(image.size[1]), numpy.uint32(buckets)).wait()
 
     cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 

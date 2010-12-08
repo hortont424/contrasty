@@ -13,7 +13,7 @@ import reduce
 import merge
 import perlEXIF
 
-imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/1"
+imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/3"
 
 def main():
     clContext = cl.Context(dev_type=cl.device_type.CPU)
@@ -53,11 +53,12 @@ def main():
     #    output = autofocus.contrastFilter(input, clContext, clQueue, size=20)
     #    output.save(os.path.basename(filename))
 
-    filtered = [autofocus.contrastFilter(images[n][1], clContext, clQueue, size=20) for n in range(1, 1 + len(images))]
-
-    #c = reduce.reduceImages(a, b, clContext, clQueue)
+    filtered = [autofocus.contrastFilter(images[n][1], clContext, clQueue, size=20).resize((800,600)) for n in range(1, 1 + len(images))]
     c = merge.mergeImages(filtered, clContext, clQueue)
-    c.show()
+    r = reduce.reduceImage(c, clContext, clQueue, len(filtered))
+
+    r.show()
+    r.save("asdf.jpg")
 
 if __name__ == '__main__':
     main()

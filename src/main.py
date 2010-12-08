@@ -12,6 +12,7 @@ import breathing
 import reduce
 import merge
 import fill
+import output
 import perlEXIF
 
 imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/3"
@@ -58,9 +59,10 @@ def main():
     c = merge.mergeImages(filtered, clContext, clQueue)
     r = reduce.reduceImage(c, clContext, clQueue, len(filtered))
     f = fill.fillImage(r, clContext, clQueue)
+    o = output.infiniteFocus([images[n][1].resize((800,600)).convert("L") for n in range(1, 1 + len(images))], f, clContext, clQueue)
 
-    f.show()
-    f.save("asdf.jpg")
+    o.show()
+    o.save("asdf.jpg")
 
 if __name__ == '__main__':
     main()

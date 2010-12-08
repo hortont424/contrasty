@@ -19,8 +19,6 @@ def fillImage(image, clContext, clQueue):
     output = numpy.zeros((image.size[1], image.size[0])).astype(numpy.uint8)
 
     while len(numpy.flatnonzero(output)) < (image.size[0] * image.size[1]) - 1:
-        print len(numpy.flatnonzero(output))
-
         output = numpy.zeros((image.size[1], image.size[0])).astype(numpy.uint8)
 
         inputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=input)

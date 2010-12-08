@@ -55,7 +55,7 @@ def main():
     #    output = autofocus.contrastFilter(input, clContext, clQueue, size=20)
     #    output.save(os.path.basename(filename))
 
-    filtered = [autofocus.contrastFilter(images[n][1], clContext, clQueue, size=20).resize((800,600)) for n in range(1, 1 + len(images))]
+    filtered = [autofocus.contrastFilter(images[n][1], clContext, clQueue).resize((800,600)) for n in range(1, 1 + len(images))]
     c = merge.mergeImages(filtered, clContext, clQueue)
     r = reduce.reduceImage(c, clContext, clQueue, len(filtered))
     f = fill.fillImage(r, clContext, clQueue)

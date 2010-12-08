@@ -30,6 +30,8 @@ def fillImage(image, clContext, clQueue):
 
         input = output
 
-    outputImage = Image.fromarray(nd_image.grey_opening(nd_image.grey_closing(output, size=(5,5)), size=(5,5)))
+    output = nd_image.grey_opening(nd_image.grey_closing(output, size=(9,9)), size=(9,9))
+
+    outputImage = Image.fromarray(output)
 
     return outputImage

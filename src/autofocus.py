@@ -12,7 +12,7 @@ def generateKernel(d):
     sinvsq = 36.0 / ((1.0 + 2.0 * r) * (1.0 + 2.0 * r))
     return [math.exp(-0.5 * (x * x) * sinvsq) for x in range(r)]
 
-def contrastFilter(image, clContext, clQueue, size=5):
+def contrastFilter(image, clContext, clQueue, size=41):
     """
     Return an image with each pixel from *image* replaced by the local contrast in a (*size*, *size*) environment.
 
@@ -25,19 +25,22 @@ def contrastFilter(image, clContext, clQueue, size=5):
         contrastFilter.program = cl.Program(clContext, kernelFile.read()).build()
         kernelFile.close()
 
+    if not size % 2:
+        print "{0} is not an odd integer".format(size)
+
     # we're throwing out all sorts of information by converting to greyscale
     image = image.convert("L")
 
     mf = cl.mem_flags
     input = numpy.asarray(image).astype(numpy.uint8)
     output = numpy.zeros((image.size[1], image.size[0])).astype(numpy.uint8)
-    gaussian = numpy.asarray(generateKernel(41)).astype(numpy.float32)
+    gaussian = numpy.asarray(generateKernel(size)).astype(numpy.float32)
 
     inputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=input)
     outputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=output)
     gaussianBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=gaussian)
 
-    contrastFilter.program.contrastFilter(clQueue, [image.size[0] * image.size[1]], None, inputBuffer, outputBuffer, gaussianBuffer, numpy.uint32(image.size[0]), numpy.uint32(image.size[1])).wait()
+    contrastFilter.program.contrastFilter(clQueue, [image.size[0] * image.size[1]], None, inputBuffer, outputBuffer, gaussianBuffer, numpy.uint32(image.size[0]), numpy.uint32(image.size[1]), numpy.uint32(size)).wait()
 
     cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 

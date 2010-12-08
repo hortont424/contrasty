@@ -3,11 +3,10 @@ inline int indexFromImagePosition(int2 imgpos, uint width, uint height)
     return imgpos.x + (imgpos.y * width);
 }
 
-__kernel void contrastFilter(__global uchar * input, __global uchar * output, __global float * gaussian, uint width, uint height)
+__kernel void contrastFilter(__global uchar * input, __global uchar * output, __global float * gaussian, uint width, uint height, uint size)
 {
     int gid = get_global_id(0);
-    char d = 41;
-    char r = floor(d / 2.0f);
+    char r = floor(size * 0.5f);
     int2 imgpos = {0, 0};
 
     imgpos.x = gid % width;
@@ -41,5 +40,5 @@ __kernel void contrastFilter(__global uchar * input, __global uchar * output, __
         total += abs(sample - value) * gaussian[abs(y - imgpos.y)];
     }
 
-    output[gid] = (uchar) (((float)total / totalCount) * 5.0);
+    output[gid] = (uchar) (((float)total / totalCount) * 5.0); // TODO: this is not proper normalization
 }

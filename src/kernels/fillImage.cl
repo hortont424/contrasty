@@ -30,20 +30,14 @@ __kernel void fillImage(__global uchar * input, __global uchar * output, uint wi
 
         for(; x <= maxX; x++)
         {
-            int2 frompos = {x, imgpos.y};
+            for(; y <= maxY; y++)
+            {
+                int2 frompos = {x, y};
 
-            sample = input[indexFromImagePosition(frompos, width, height)];
+                sample = input[indexFromImagePosition(frompos, width, height)];
 
-            vals[sample]++;
-        }
-
-        for(; y <= maxY; y++)
-        {
-            int2 frompos = {imgpos.x, y};
-
-            sample = input[indexFromImagePosition(frompos, width, height)];
-
-            vals[sample]++;
+                vals[sample]++;
+            }
         }
 
         for(int i = 1; i < 255; i++)

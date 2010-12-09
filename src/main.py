@@ -60,6 +60,7 @@ def cmdGenerate(options):
     filtered = [PILToNumpy(NumpyToPIL(filters.contrastFilter(images[n][1], clContext, clQueue)).resize((800,600))) for n in range(1, 1 + len(images))]
     merged = filters.mergeImages(filtered, clContext, clQueue)
     reduced = filters.reduceImage(merged, clContext, clQueue, len(filtered))
+    NumpyToPIL(reduced).show()
     depth = filters.fillImage(reduced, clContext, clQueue)
 
     image3D = Image3D()

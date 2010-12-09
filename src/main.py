@@ -78,7 +78,15 @@ def generate(options):
 
 @logCall
 def infiniteFocus(options):
-    print options
+    inputFile = open(options.input, "r")
+
+    if not inputFile:
+        print "Failed to open input file!"
+        sys.exit(os.EX_OSFILE)
+
+    image3D = pickle.load(inputFile)
+
+    print image3D.sourceDirectory
 
 def main():
     parser = OptionParser()

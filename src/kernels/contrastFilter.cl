@@ -12,7 +12,7 @@ __kernel void contrastFilter(__global uchar * input, __global uchar * output, __
     imgpos.x = gid % width;
     imgpos.y = floor((float)gid / (float)width);
 
-    long total = 0;
+    float total = 0;
     uchar value = input[gid], sample;
 
     int x = max((int)(imgpos.x - r), (int)0);
@@ -20,25 +20,25 @@ __kernel void contrastFilter(__global uchar * input, __global uchar * output, __
     int maxX = min((int)(imgpos.x + r), (int)width);
     int maxY = min((int)(imgpos.y + r), (int)height);
 
-    long totalCount = (maxX - x) + (maxY - y);
+    float totalCount = 0;//(maxX - x) + (maxY - y);
+
+    float sinvsq = 36.0 / ((1.0 + 2.0 * r) * (1.0 + 2.0 * r));
 
     for(; x <= maxX; x++)
     {
-        int2 frompos = {x, imgpos.y};
+        for(; y <= maxY; y++)
+        {
+            int2 frompos = {x, y};
 
-        sample = input[indexFromImagePosition(frompos, width, height)];
+            sample = input[indexFromImagePosition(frompos, width, height)];
 
-        total += abs(sample - value) * gaussian[abs(x - imgpos.x)];
+            float gval = native_exp((float) -((0.5f * ((x - imgpos.x) * (x - imgpos.x)) * sinvsq) +
+                                              (0.5f * ((y - imgpos.y) * (y - imgpos.y)) * sinvsq)));
+
+            total += abs(sample - value) * gval;
+            totalCount += gval;
+        }
     }
 
-    for(; y <= maxY; y++)
-    {
-        int2 frompos = {imgpos.x, y};
-
-        sample = input[indexFromImagePosition(frompos, width, height)];
-
-        total += abs(sample - value) * gaussian[abs(y - imgpos.y)];
-    }
-
-    output[gid] = (uchar) (((float)total / totalCount) * 5.0); // TODO: this is not proper normalization
+    output[gid] = (uchar) (total / totalCount); // TODO: this is not proper normalization
 }

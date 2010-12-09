@@ -57,7 +57,6 @@ def cmdGenerate(options):
             images[index] = (filename, image, tags)
 
     # 906x600 keeps aspect ratio better... should figure size from input size
-
     filtered = [PILToNumpy(NumpyToPIL(filters.contrastFilter(images[n][1], clContext, clQueue)).resize((800,600))) for n in range(1, 1 + len(images))]
     merged = filters.mergeImages(filtered, clContext, clQueue)
     reduced = filters.reduceImage(merged, clContext, clQueue, len(filtered))
@@ -115,7 +114,7 @@ def main():
     options.input = args[0]
 
     if options.generate:
-        cmdDenerate(options)
+        cmdGenerate(options)
     elif options.infiniteFocus:
         cmdInfiniteFocus(options)
 

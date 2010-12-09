@@ -11,9 +11,10 @@ from optparse import OptionParser # deprecated in Python 2.7...
 from PIL import Image
 
 from log import *
-from filters import *
 from perlEXIF import *
 from image import *
+
+import filters
 
 def setupOpenCL():
     clContext = cl.Context(dev_type=cl.device_type.CPU)
@@ -31,7 +32,7 @@ def setupOpenCL():
     return (clContext, clQueue)
 
 @logCall
-def generate(options):
+def cmdGenerate(options):
     clContext, clQueue = setupOpenCL()
     images = {}
 
@@ -57,10 +58,10 @@ def generate(options):
 
     # 906x600 keeps aspect ratio better... should figure size from input size
 
-    filtered = [PILToNumpy(NumpyToPIL(contrastFilter(images[n][1], clContext, clQueue)).resize((800,600))) for n in range(1, 1 + len(images))]
-    merged = mergeImages(filtered, clContext, clQueue)
-    reduced = reduceImage(merged, clContext, clQueue, len(filtered))
-    depth = fillImage(reduced, clContext, clQueue)
+    filtered = [PILToNumpy(NumpyToPIL(filters.contrastFilter(images[n][1], clContext, clQueue)).resize((800,600))) for n in range(1, 1 + len(images))]
+    merged = filters.mergeImages(filtered, clContext, clQueue)
+    reduced = filters.reduceImage(merged, clContext, clQueue, len(filtered))
+    depth = filters.fillImage(reduced, clContext, clQueue)
 
     image3D = Image3D()
     image3D.sourceDirectory = options.input
@@ -79,7 +80,9 @@ def generate(options):
         print "No output file specified, discarding."
 
 @logCall
-def infiniteFocus(options):
+def cmdInfiniteFocus(options):
+    clContext, clQueue = setupOpenCL()
+
     inputFile = open(options.input, "r")
 
     if not inputFile:
@@ -88,7 +91,12 @@ def infiniteFocus(options):
 
     image3D = pickle.load(inputFile)
 
-    print image3D.sourceDirectory
+    o = filters.infiniteFocus(image3D.images, image3D.depth, clContext, clQueue)
+
+    if options.output:
+        NumpyToPIL(o).save(options.output)
+    else:
+        print "No output file specified, discarding."
 
 def main():
     parser = OptionParser()
@@ -107,14 +115,9 @@ def main():
     options.input = args[0]
 
     if options.generate:
-        generate(options)
+        cmdDenerate(options)
     elif options.infiniteFocus:
-        infiniteFocus(options)
-
-#    o = infiniteFocus([images[n][1].convert("L") for n in range(1, 1 + len(images))], f, clContext, clQueue)
-#
-#    o.show()
-#    o.save("asdf.jpg")
+        cmdInfiniteFocus(options)
 
 if __name__ == '__main__':
     main()

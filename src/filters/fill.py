@@ -16,23 +16,20 @@ def fillImage(image, clContext, clQueue):
         kernelFile.close()
 
     mf = cl.mem_flags
-    input = numpy.asarray(image).astype(numpy.uint8)
-    output = numpy.zeros((image.size[1], image.size[0])).astype(numpy.uint8)
+    output = numpy.zeros(image.shape).astype(numpy.uint8)
 
-    while len(numpy.flatnonzero(output)) < (image.size[0] * image.size[1]) - 1:
-        output = numpy.zeros((image.size[1], image.size[0])).astype(numpy.uint8)
+    while len(numpy.flatnonzero(output)) < (image.size) - 1:
+        output = numpy.zeros(image.shape).astype(numpy.uint8)
 
-        inputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=input)
+        imageBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=image)
         outputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=output)
 
-        fillImage.program.fillImage(clQueue, [image.size[0] * image.size[1]], None, inputBuffer, outputBuffer, numpy.uint32(image.size[0]), numpy.uint32(image.size[1])).wait()
+        fillImage.program.fillImage(clQueue, [image.size], None, imageBuffer, outputBuffer, numpy.uint32(image.shape[1]), numpy.uint32(image.shape[0])).wait()
 
         cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 
-        input = output
+        image = output
 
     output = nd_image.grey_opening(nd_image.grey_closing(output, size=(9,9)), size=(9,9))
 
-    outputImage = Image.fromarray(output)
-
-    return outputImage
+    return output

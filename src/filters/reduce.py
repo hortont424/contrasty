@@ -16,20 +16,17 @@ def reduceImage(image, clContext, clQueue, buckets):
         kernelFile.close()
 
     mf = cl.mem_flags
-    input = numpy.asarray(image).astype(numpy.uint8)
-    output = numpy.zeros((image.size[1], image.size[0] / buckets)).astype(numpy.uint8)
-    q = numpy.zeros((image.size[1], image.size[0] / buckets)).astype(numpy.uint8)
+    output = numpy.zeros((image.shape[0], image.shape[1] / buckets)).astype(numpy.uint8)
+    q = numpy.zeros((image.shape[0], image.shape[1] / buckets)).astype(numpy.uint8)
 
-    inputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=input)
+    imageBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=image)
     outputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=output)
     qBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=q)
 
-    reduceImage.program.reduceImage(clQueue, [(image.size[0] / buckets) * image.size[1]], None, inputBuffer, outputBuffer, qBuffer, numpy.uint32(image.size[0]), numpy.uint32(image.size[1]), numpy.uint32(buckets)).wait()
+    reduceImage.program.reduceImage(clQueue, [(image.shape[1] / buckets) * image.shape[0]], None, imageBuffer, outputBuffer, qBuffer, numpy.uint32(image.shape[1]), numpy.uint32(image.shape[0]), numpy.uint32(buckets)).wait()
 
     cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 
     filtered = nd_image.grey_opening(nd_image.minimum_filter(nd_image.grey_opening(output, size=(3,3)), size=(3,3)), size=(2,2))
 
-    outputImage = Image.fromarray(filtered)
-
-    return outputImage
+    return filtered

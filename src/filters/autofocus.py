@@ -29,22 +29,17 @@ def contrastFilter(image, clContext, clQueue, size=41):
     if not size % 2:
         print "{0} is not an odd integer".format(size)
 
-    # we're throwing out all sorts of information by converting to greyscale
-    image = image.convert("L")
-
     mf = cl.mem_flags
-    input = numpy.asarray(image).astype(numpy.uint8)
-    output = numpy.zeros((image.size[1], image.size[0])).astype(numpy.uint8)
+
+    output = numpy.zeros(image.shape).astype(numpy.uint8)
     gaussian = numpy.asarray(generateKernel(size)).astype(numpy.float32)
 
-    inputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=input)
+    imageBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=image)
     outputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=output)
     gaussianBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=gaussian)
 
-    contrastFilter.program.contrastFilter(clQueue, [image.size[0] * image.size[1]], None, inputBuffer, outputBuffer, gaussianBuffer, numpy.uint32(image.size[0]), numpy.uint32(image.size[1]), numpy.uint32(size)).wait()
+    contrastFilter.program.contrastFilter(clQueue, [image.size], None, imageBuffer, outputBuffer, gaussianBuffer, numpy.uint32(image.shape[1]), numpy.uint32(image.shape[0]), numpy.uint32(size)).wait()
 
     cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 
-    outputImage = Image.fromarray(output)
-
-    return outputImage
+    return output

@@ -13,7 +13,7 @@ from PIL import Image
 from log import *
 from filters import *
 from perlEXIF import *
-from image import Image3D
+from image import *
 
 def setupOpenCL():
     clContext = cl.Context(dev_type=cl.device_type.CPU)
@@ -49,21 +49,23 @@ def generate(options):
             index = int(filenameMatches.groups(0)[0])
             filename = os.path.join(root, name)
             tags = readEXIFData(filename)
-            image = Image.open(filename)
+
+            # we're throwing out all sorts of information by converting to greyscale
+            image = PILToNumpy(Image.open(filename).convert("L"))
 
             images[index] = (filename, image, tags)
 
     # 906x600 keeps aspect ratio better... should figure size from input size
 
-    filtered = [contrastFilter(images[n][1], clContext, clQueue).resize((800,600)) for n in range(1, 1 + len(images))]
+    filtered = [PILToNumpy(NumpyToPIL(contrastFilter(images[n][1], clContext, clQueue)).resize((800,600))) for n in range(1, 1 + len(images))]
     merged = mergeImages(filtered, clContext, clQueue)
     reduced = reduceImage(merged, clContext, clQueue, len(filtered))
     depth = fillImage(reduced, clContext, clQueue)
 
     image3D = Image3D()
     image3D.sourceDirectory = options.input
-    image3D.images = [numpy.asarray(images[n][1].resize((800,600))).astype(numpy.uint8) for n in range(1, 1 + len(images))]
-    image3D.depth = numpy.asarray(depth).astype(numpy.uint8)
+    image3D.images = [PILToNumpy(NumpyToPIL(images[n][1]).resize((800,600))) for n in range(1, 1 + len(images))]
+    image3D.depth = depth
 
     if options.output:
         outputFile = open(options.output, "w")

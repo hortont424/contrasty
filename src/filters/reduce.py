@@ -27,6 +27,6 @@ def reduceImage(image, clContext, clQueue, buckets):
 
     cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 
-    filtered = nd_image.median_filter(output, size=(11,11))
+    filtered = nd_image.median_filter(output, size=(51,51))
 
     return filtered

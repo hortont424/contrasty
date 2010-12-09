@@ -43,6 +43,6 @@ def contrastFilter(image, clContext, clQueue, size=41):
 
     cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 
-    filtered = nd_image.maximum_filter(output, size=(40, 40))
+    filtered = nd_image.maximum_filter(output, size=(82, 82)) # highly dependent on feature size/image resolution
 
     return filtered

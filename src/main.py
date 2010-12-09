@@ -3,32 +3,43 @@
 import os
 import sys
 import re
+import numpy
 import pyopencl as cl
+import cPickle as pickle
 
-from PIL import Image, ImageFilter
+from optparse import OptionParser # deprecated in Python 2.7...
+from PIL import Image
 
+from log import *
 from filters import *
 from perlEXIF import *
+from image import Image3D
 
-imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/3"
-
-def main():
+def setupOpenCL():
     clContext = cl.Context(dev_type=cl.device_type.CPU)
 
     # Output device(s) being used for computation
-    print "Running on:"
+    devices = "OpenCL on: "
     for dev in clContext.get_info(cl.context_info.DEVICES):
-        print "   ",
-        print dev.get_info(cl.device_info.VENDOR),
-        print dev.get_info(cl.device_info.NAME)
-    print
+        devices += re.sub("\s+", " ", dev.get_info(cl.device_info.NAME)) + " "
+
+    log(devices, priority=Priority.LOW)
 
     # Load and compile the OpenCL kernel
     clQueue = cl.CommandQueue(clContext)
 
+    return (clContext, clQueue)
+
+@logCall
+def generate(options):
+    clContext, clQueue = setupOpenCL()
     images = {}
 
-    for root, dirs, files in os.walk(imagesDir):
+    if not os.path.isdir(options.input):
+        print options.input, "is not a valid input directory"
+        sys.exit(os.EX_NOINPUT)
+
+    for root, dirs, files in os.walk(options.input):
         for name in files:
             filenameMatches = re.match("([0-9]+)\.(?:jpg|jpeg)", name.lower())
 
@@ -42,14 +53,58 @@ def main():
 
             images[index] = (filename, image, tags)
 
-    filtered = [contrastFilter(images[n][1], clContext, clQueue).resize((800,600)) for n in range(1, 1 + len(images))]
-    c = mergeImages(filtered, clContext, clQueue)
-    r = reduceImage(c, clContext, clQueue, len(filtered))
-    f = fillImage(r, clContext, clQueue)
-    o = infiniteFocus([images[n][1].resize((800,600)).convert("L") for n in range(1, 1 + len(images))], f, clContext, clQueue)
+    # 906x600 keeps aspect ratio better... should figure size from input size
 
-    o.show()
-    o.save("asdf.jpg")
+    filtered = [contrastFilter(images[n][1], clContext, clQueue).resize((800,600)) for n in range(1, 1 + len(images))]
+    merged = mergeImages(filtered, clContext, clQueue)
+    reduced = reduceImage(merged, clContext, clQueue, len(filtered))
+    depth = fillImage(reduced, clContext, clQueue)
+
+    image3D = Image3D()
+    image3D.sourceDirectory = options.input
+    image3D.images = [numpy.asarray(images[n][1].resize((800,600))).astype(numpy.uint8) for n in range(1, 1 + len(images))]
+    image3D.depth = numpy.asarray(depth).astype(numpy.uint8)
+
+    if options.output:
+        outputFile = open(options.output, "w")
+
+        if not outputFile:
+            print "Failed to open output file!"
+            sys.exit(os.EX_OSFILE)
+
+        pickle.dump(image3D, outputFile)
+    else:
+        print "No output file specified, discarding."
+
+@logCall
+def infiniteFocus(options):
+    print options
+
+def main():
+    parser = OptionParser()
+    parser.add_option("-g", "--generate", dest="generate", action="store_true", default=False,
+                      help="Generate a 3D image from a set of 2D images")
+    parser.add_option("-f", "--infinite-focus", dest="infiniteFocus", action="store_true", default=False,
+                      help="Generate a 2D image with a small virtual aperture from a 3D image")
+    parser.add_option("-o", "--output", dest="output",
+                      help="Write output to file")
+    (options, args) = parser.parse_args()
+
+    if not len(args) is 1:
+        print "Too many input arguments: ", args
+        sys.exit(os.EX_USAGE)
+
+    options.input = args[0]
+
+    if options.generate:
+        generate(options)
+    elif options.infiniteFocus:
+        infiniteFocus(options)
+
+#    o = infiniteFocus([images[n][1].convert("L") for n in range(1, 1 + len(images))], f, clContext, clQueue)
+#
+#    o.show()
+#    o.save("asdf.jpg")
 
 if __name__ == '__main__':
     main()

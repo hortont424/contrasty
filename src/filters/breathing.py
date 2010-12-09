@@ -1,5 +1,7 @@
 import math
 
+from log import logCall
+
 lenses = {
     "Nikon-50mm-f1.8": (0.0538741, 0.99783)
 }
@@ -8,6 +10,7 @@ def computeScaleFactor(focalDistance, lens):
     fit = lenses[lens]
     return (fit[0] / focalDistance) + fit[1]
 
+@logCall
 def breathingCorrection(image, focalDistance, lens="Nikon-50mm-f1.8"):
     scaleFactor = computeScaleFactor(focalDistance, lens)
     print focalDistance, scaleFactor

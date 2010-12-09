@@ -5,11 +5,14 @@ import numpy
 
 from PIL import Image
 
+from log import logCall
+
 def generateKernel(d):
     r = int(math.floor(d / 2.0))
     sinvsq = 36.0 / ((1.0 + 2.0 * r) * (1.0 + 2.0 * r))
     return [math.exp(-0.5 * (x * x) * sinvsq) for x in range(r)]
 
+@logCall
 def contrastFilter(image, clContext, clQueue, size=41):
     """
     Return an image with each pixel from *image* replaced by the local contrast in a (*size*, *size*) environment.

@@ -6,6 +6,9 @@ import numpy.numarray.nd_image as nd_image
 
 from PIL import Image
 
+from log import logCall
+
+@logCall
 def reduceImage(image, clContext, clQueue, buckets):
     if not hasattr(reduceImage, "program"):
         kernelFile = open('src/kernels/reduceImage.cl', 'r')

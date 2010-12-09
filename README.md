@@ -23,6 +23,7 @@ Usage
 
     ./contrasty.py --generate imageDir -o image.cty
     ./contrasty.py --view image.cty
+    ./contrasty.py --infinite-focus image.cty -o crystal-clear.jpg
     ./contrasty.py --anaglyph image.cty -o red-and-blue.jpg
     ./contrasty.py --tilt-shift image.cty <TILT-SHIFT PARAMS?!?> -o blurry-boats.jpg
 

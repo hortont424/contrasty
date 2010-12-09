@@ -5,11 +5,9 @@ import numpy
 
 from PIL import Image
 
-from log import *
-
 def infiniteFocus(images, depth, clContext, clQueue):
     if not hasattr(infiniteFocus, "program"):
-        kernelFile = open('src/infiniteFocus.cl', 'r')
+        kernelFile = open('src/kernels/infiniteFocus.cl', 'r')
         infiniteFocus.program = cl.Program(clContext, kernelFile.read()).build()
         kernelFile.close()
 

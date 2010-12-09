@@ -5,8 +5,6 @@ import numpy
 
 from PIL import Image
 
-from log import *
-
 def generateKernel(d):
     r = int(math.floor(d / 2.0))
     sinvsq = 36.0 / ((1.0 + 2.0 * r) * (1.0 + 2.0 * r))
@@ -21,7 +19,7 @@ def contrastFilter(image, clContext, clQueue, size=41):
     """
 
     if not hasattr(contrastFilter, "program"):
-        kernelFile = open('src/contrastFilter.cl', 'r')
+        kernelFile = open('src/kernels/contrastFilter.cl', 'r')
         contrastFilter.program = cl.Program(clContext, kernelFile.read()).build()
         kernelFile.close()
 

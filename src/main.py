@@ -7,12 +7,8 @@ import pyopencl as cl
 
 from PIL import Image, ImageFilter
 
-import autofocus
-import breathing
-import reduce
-import merge
-import fill
-import output
+from filters import *
+
 import perlEXIF
 
 imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/3"
@@ -43,23 +39,15 @@ def main():
             index = int(filenameMatches.groups(0)[0])
             filename = os.path.join(root, name)
             tags = perlEXIF.readEXIFData(filename)
-            image = Image.open(filename)#.resize((800,600))
+            image = Image.open(filename)
 
             images[index] = (filename, image, tags)
 
-    #for (filename, image, tags) in [images[key] for key in sorted(images.iterkeys())]:
-    #    input = image.copy()
-    #    #input = breathing.breathingCorrection(input, float(tags["FocusDistance"].split(" ")[0]))
-    #    #input.save(os.path.basename(filename))
-    #
-    #    output = autofocus.contrastFilter(input, clContext, clQueue, size=20)
-    #    output.save(os.path.basename(filename))
-
-    filtered = [autofocus.contrastFilter(images[n][1], clContext, clQueue).resize((800,600)) for n in range(1, 1 + len(images))]
-    c = merge.mergeImages(filtered, clContext, clQueue)
-    r = reduce.reduceImage(c, clContext, clQueue, len(filtered))
-    f = fill.fillImage(r, clContext, clQueue)
-    o = output.infiniteFocus([images[n][1].resize((800,600)).convert("L") for n in range(1, 1 + len(images))], f, clContext, clQueue)
+    filtered = [contrastFilter(images[n][1], clContext, clQueue).resize((800,600)) for n in range(1, 1 + len(images))]
+    c = mergeImages(filtered, clContext, clQueue)
+    r = reduceImage(c, clContext, clQueue, len(filtered))
+    f = fillImage(r, clContext, clQueue)
+    o = infiniteFocus([images[n][1].resize((800,600)).convert("L") for n in range(1, 1 + len(images))], f, clContext, clQueue)
 
     o.show()
     o.save("asdf.jpg")

@@ -5,11 +5,9 @@ import numpy
 
 from PIL import Image
 
-from log import *
-
 def mergeImages(images, clContext, clQueue):
     if not hasattr(mergeImages, "program"):
-        kernelFile = open('src/mergeImages.cl', 'r')
+        kernelFile = open('src/kernels/mergeImages.cl', 'r')
         mergeImages.program = cl.Program(clContext, kernelFile.read()).build()
         kernelFile.close()
 

@@ -57,10 +57,9 @@ def cmdGenerate(options):
             images[index] = (filename, image, tags)
 
     # 906x600 keeps aspect ratio better... should figure size from input size
-    filtered = [PILToNumpy(NumpyToPIL(filters.contrastFilter(images[n][1], clContext, clQueue)).resize((800,600))) for n in range(1, 1 + len(images))]
+    filtered = [PILToNumpy(NumpyToPIL(filters.contrastFilter(images[n][1], clContext, clQueue, size=41)).resize((800,600))) for n in range(1, 1 + len(images))]
     merged = filters.mergeImages(filtered, clContext, clQueue)
     reduced = filters.reduceImage(merged, clContext, clQueue, len(filtered))
-    NumpyToPIL(reduced).show()
     depth = filters.fillImage(reduced, clContext, clQueue)
 
     image3D = Image3D()

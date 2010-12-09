@@ -30,7 +30,7 @@ __kernel void reduceImage(__global uchar * input, __global uchar * output, __glo
 
     output[gid] = (output[gid] + 1);
 
-    if(!(btot > (1 * q[gid])))
+    if(!(btot > (1.0 * q[gid])))
     {
         output[gid] = q[gid] = 0;
     }

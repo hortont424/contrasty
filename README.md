@@ -14,11 +14,16 @@ Dependencies
 
 * Python 2.6+
 * PIL
+* PyOpenCL
+* numpy
+* exiftool
 
 Usage
 -----
 
-    ./contrasty.py --generate image1.jpg image2.jpg image3.jpg -o image.cty
+    ./contrasty.py --generate imageDir -o image.cty
     ./contrasty.py --view image.cty
     ./contrasty.py --anaglyph image.cty -o red-and-blue.jpg
     ./contrasty.py --tilt-shift image.cty <TILT-SHIFT PARAMS?!?> -o blurry-boats.jpg
+
+    *imageDir* should be a directory of images named 1.jpg, 2.jpg, 3.jpg, and so on.

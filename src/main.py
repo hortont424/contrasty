@@ -8,8 +8,7 @@ import pyopencl as cl
 from PIL import Image, ImageFilter
 
 from filters import *
-
-import perlEXIF
+from perlEXIF import *
 
 imagesDir = "/Users/hortont/Documents/School/RPI/2010 (Senior)/Computational Vision/final project/focus/3"
 
@@ -38,7 +37,7 @@ def main():
 
             index = int(filenameMatches.groups(0)[0])
             filename = os.path.join(root, name)
-            tags = perlEXIF.readEXIFData(filename)
+            tags = readEXIFData(filename)
             image = Image.open(filename)
 
             images[index] = (filename, image, tags)

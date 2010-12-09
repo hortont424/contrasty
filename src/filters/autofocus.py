@@ -2,6 +2,7 @@ import math
 import sys
 import pyopencl as cl
 import numpy
+import numpy.numarray.nd_image as nd_image
 
 from PIL import Image
 
@@ -42,4 +43,6 @@ def contrastFilter(image, clContext, clQueue, size=41):
 
     cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
 
-    return output
+    filtered = nd_image.maximum_filter(output, size=(40, 40))
+
+    return filtered

@@ -57,14 +57,23 @@ def cmdGenerate(options):
             images[index] = (filename, image, tags)
 
     # 906x600 keeps aspect ratio better... should figure size from input size
-    filtered = [PILToNumpy(NumpyToPIL(filters.contrastFilter(images[n][1], clContext, clQueue, size=41)).resize((800,600))) for n in range(1, 1 + len(images))]
+    filtered = [PILToNumpy(NumpyToPIL(filters.contrastFilter(images[n][1], clContext, clQueue))) for n in range(1, 1 + len(images))]
     merged = filters.mergeImages(filtered, clContext, clQueue)
     reduced = filters.reduceImage(merged, clContext, clQueue, len(filtered))
     depth = filters.fillImage(reduced, clContext, clQueue)
 
+    outputPrefix = os.path.splitext(options.output)[0]
+
+    for i, filteredImage in enumerate(filtered):
+        NumpyToPIL(filteredImage).save("{0}-filtered-{1}.jpg".format(outputPrefix, i))
+
+    NumpyToPIL(merged).save("{0}-merged.jpg".format(outputPrefix))
+    Image.eval(NumpyToPIL(reduced), lambda x: x * (255 / len(filtered))).save("{0}-reduced.jpg".format(outputPrefix))
+    Image.eval(NumpyToPIL(depth), lambda x: x * (255 / len(filtered))).save("{0}-depth.jpg".format(outputPrefix))
+
     image3D = Image3D()
     image3D.sourceDirectory = options.input
-    image3D.images = [PILToNumpy(NumpyToPIL(images[n][1]).resize((800,600))) for n in range(1, 1 + len(images))]
+    image3D.images = [PILToNumpy(NumpyToPIL(images[n][1])) for n in range(1, 1 + len(images))]
     image3D.depth = depth
 
     if options.output:

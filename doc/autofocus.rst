@@ -1,5 +1,0 @@
-autofocus
-=========
-
-.. automodule:: autofocus
-   :members:

@@ -1,7 +1,4 @@
-.PHONY: run doc
+.PHONY: run
 
 run:
 	./src/main.py
-
-doc:
-	cd doc ; make html

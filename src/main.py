@@ -1,4 +1,4 @@
-#!/usr/bin/env python -Wall
+#!/usr/bin/env python
 
 import OpenGL
 
@@ -26,7 +26,7 @@ from image import *
 import filters
 
 def setupOpenCL():
-    clContext = cl.Context(dev_type=cl.device_type.CPU)
+    clContext = cl.create_some_context()#Context(dev_type=cl.device_type.GPU)
 
     # Output device(s) being used for computation
     devices = "OpenCL on: "
@@ -60,7 +60,6 @@ def cmdGenerate(options):
             filename = os.path.join(root, name)
             tags = readEXIFData(filename)
 
-
             image = PILToNumpy(Image.open(filename))
 
             images[index] = (filename, image, tags)
@@ -79,6 +78,7 @@ def cmdGenerate(options):
     NumpyToPIL(merged).save("{0}-merged.jpg".format(outputPrefix))
     Image.eval(NumpyToPIL(reduced), lambda x: x * (255 / len(filtered))).save("{0}-reduced.jpg".format(outputPrefix))
     Image.eval(NumpyToPIL(depth), lambda x: x * (255 / len(filtered))).save("{0}-depth.jpg".format(outputPrefix))
+    NumpyToPIL(depth).save("{0}-rawdepth.jpg".format(outputPrefix))
 
     image3D = Image3D()
     image3D.sourceDirectory = options.input
@@ -115,28 +115,23 @@ def cmdInfiniteFocus(options):
     else:
         print "No output file specified, discarding."
 
-def cmdViewerDrawCallback():
-    glBegin(GL_POINTS)
-    glColor4f(1.0, 0.0, 0.0, 1.0)
-    glVertex3f(400.0, 300.0, 0.0)
-    glEnd()
+def cmdViewerDrawCallback(img, depth):
+    def cb():
+        glBegin(GL_POINTS)
+        for idx, val in numpy.ndenumerate(PILToNumpy(NumpyToPIL(img).convert("L"))):
+            glColor4f(float(val) / 255.0, float(val) / 255.0, float(val) / 255.0, 1.0)
+            glVertex3f(idx[1], img.shape[0] - idx[0], float(depth[idx[0],idx[1]]))
+        glEnd()
+    
+    return cb
 
 @logCall
 def cmdViewer(options):
-    #clContext, clQueue = setupOpenCL()
-    #
-    #inputFile = open(options.input, "r")
-    #
-    #if not inputFile:
-    #    print "Failed to open input file!"
-    #    sys.exit(os.EX_OSFILE)
-    #
-    #image3D = pickle.load(inputFile)
-    #
-    #o = filters.infiniteFocus(image3D.images, image3D.depth, clContext, clQueue)
-    #
-    v = viewer.Viewer(cmdViewerDrawCallback())
-
+    # depends on --infinite-focus having already been run!
+    img = PILToNumpy(Image.open("1-inf.jpg").resize((800,600)))
+    depth = PILToNumpy(Image.open("1-rawdepth.jpg").resize((800,600)))
+    v = viewer.Viewer(cmdViewerDrawCallback(img, depth))
+    
 def main():
     parser = OptionParser()
     parser.add_option("-g", "--generate", dest="generate", action="store_true", default=False,

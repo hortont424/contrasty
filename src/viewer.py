@@ -32,7 +32,7 @@ class Viewer(object):
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
 
-        gluOrtho2D(0, width, 0, height) #image size!
+        glOrtho(0, width, 0, height, -2000, 2000) #image size!
 
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
@@ -49,3 +49,4 @@ class Viewer(object):
 
 glutInit("")
 glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH | GLUT_MULTISAMPLE)
+

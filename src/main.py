@@ -51,13 +51,13 @@ def cmdGenerate(options):
             filename = os.path.join(root, name)
             tags = readEXIFData(filename)
 
-            # we're throwing out all sorts of information by converting to greyscale
-            image = PILToNumpy(Image.open(filename).convert("L"))
+
+            image = PILToNumpy(Image.open(filename))
 
             images[index] = (filename, image, tags)
 
-    # 906x600 keeps aspect ratio better... should figure size from input size
-    filtered = [PILToNumpy(NumpyToPIL(filters.contrastFilter(images[n][1], clContext, clQueue))) for n in range(1, 1 + len(images))]
+    # we're throwing out all sorts of information by converting to greyscale
+    filtered = [filters.contrastFilter(PILToNumpy(NumpyToPIL(images[n][1]).convert("L")), clContext, clQueue) for n in range(1, 1 + len(images))]
     merged = filters.mergeImages(filtered, clContext, clQueue)
     reduced = filters.reduceImage(merged, clContext, clQueue, len(filtered))
     depth = filters.fillImage(reduced, clContext, clQueue)
@@ -73,7 +73,7 @@ def cmdGenerate(options):
 
     image3D = Image3D()
     image3D.sourceDirectory = options.input
-    image3D.images = [PILToNumpy(NumpyToPIL(images[n][1])) for n in range(1, 1 + len(images))]
+    image3D.images = [images[n][1] for n in range(1, 1 + len(images))]
     image3D.depth = depth
 
     if options.output:

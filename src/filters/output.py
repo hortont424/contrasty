@@ -16,16 +16,30 @@ def infiniteFocus(images, depth, clContext, clQueue):
 
     mf = cl.mem_flags
 
-    output = numpy.zeros(images[0].shape).astype(numpy.uint8)
     depthBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=depth)
-    outputBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=output)
+
+    outputR = numpy.zeros(depth.shape).astype(numpy.uint8)
+    outputG = numpy.zeros(depth.shape).astype(numpy.uint8)
+    outputB = numpy.zeros(depth.shape).astype(numpy.uint8)
+    outputRBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=outputR)
+    outputGBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=outputG)
+    outputBBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=outputB)
 
     for currentImage in range(len(images)):
-        image = images[currentImage]
-        imageBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=image)
+        r, g, b = [a.copy() for a in images[currentImage].transpose(2, 0, 1)]
 
-        infiniteFocus.program.infiniteFocus(clQueue, [images[0].size], None, imageBuffer, outputBuffer, depthBuffer, numpy.uint32(images[0].shape[1]), numpy.uint32(images[0].shape[0]), numpy.uint32(len(images)), numpy.uint32(currentImage)).wait()
+        rBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=r)
+        gBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=g)
+        bBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=b)
 
-    cl.enqueue_read_buffer(clQueue, outputBuffer, output).wait()
+        infiniteFocus.program.infiniteFocus(clQueue, [depth.size], None, rBuffer, outputRBuffer, depthBuffer, numpy.uint32(currentImage)).wait()
+        infiniteFocus.program.infiniteFocus(clQueue, [depth.size], None, gBuffer, outputGBuffer, depthBuffer, numpy.uint32(currentImage)).wait()
+        infiniteFocus.program.infiniteFocus(clQueue, [depth.size], None, bBuffer, outputBBuffer, depthBuffer, numpy.uint32(currentImage)).wait()
 
-    return output
+    cl.enqueue_read_buffer(clQueue, outputRBuffer, outputR).wait()
+    cl.enqueue_read_buffer(clQueue, outputGBuffer, outputG).wait()
+    cl.enqueue_read_buffer(clQueue, outputBBuffer, outputB).wait()
+
+    rgb = numpy.array((outputR, outputG, outputB)).transpose(1, 2, 0)
+
+    return rgb

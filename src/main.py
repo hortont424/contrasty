@@ -122,17 +122,21 @@ def cmdViewerDrawCallback(img, depth):
 def cmdViewer(options):
     import viewer
 
+    prefix = os.path.splitext(options.input)[0]
+
     # depends on --infinite-focus having already been run!
-    img = PILToNumpy(Image.open("1-inf.jpg").resize((800,600)))
-    depth = PILToNumpy(Image.open("1-rawdepth.jpg").resize((800,600)))
+    img = PILToNumpy(Image.open("{0}-inf.jpg".format(prefix)).resize((800,600)))
+    depth = PILToNumpy(Image.open("{0}-rawdepth.jpg".format(prefix)).resize((800,600)))
     v = viewer.Viewer(cmdViewerDrawCallback(img, depth))
 
 @logCall
 def cmdAnaglyph(options):
     clContext, clQueue = setupOpenCL()
 
-    img = PILToNumpy(Image.open("4-inf.jpg"))
-    depth = PILToNumpy(Image.open("4-depth.jpg"))
+    prefix = os.path.splitext(options.input)[0]
+
+    img = PILToNumpy(Image.open("{0}-inf.jpg".format(prefix)))
+    depth = PILToNumpy(Image.open("{0}-depth.jpg".format(prefix)))
 
     o = filters.anaglyph(img, depth, clContext, clQueue)
 

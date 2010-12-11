@@ -17,6 +17,7 @@ Dependencies
 * PyOpenCL
 * PyOpenGL
 * numpy
+* scipy
 * exiftool
 
 Usage

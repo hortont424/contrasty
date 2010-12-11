@@ -15,6 +15,7 @@ Dependencies
 * Python 2.6+
 * PIL
 * PyOpenCL
+* PyOpenGL
 * numpy
 * exiftool
 

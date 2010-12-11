@@ -1,11 +1,20 @@
 #!/usr/bin/env python -Wall
 
+import OpenGL
+
+OpenGL.ERROR_CHECKING = True
+
+from OpenGL.GL import *
+from OpenGL.GLUT import *
+from OpenGL.GLU import *
+
 import os
 import sys
 import re
 import numpy
 import pyopencl as cl
 import cPickle as pickle
+import viewer
 
 from optparse import OptionParser # deprecated in Python 2.7...
 from PIL import Image
@@ -106,12 +115,36 @@ def cmdInfiniteFocus(options):
     else:
         print "No output file specified, discarding."
 
+def cmdViewerDrawCallback():
+    glBegin(GL_POINTS)
+    glColor4f(1.0, 0.0, 0.0, 1.0)
+    glVertex3f(400.0, 300.0, 0.0)
+    glEnd()
+
+@logCall
+def cmdViewer(options):
+    #clContext, clQueue = setupOpenCL()
+    #
+    #inputFile = open(options.input, "r")
+    #
+    #if not inputFile:
+    #    print "Failed to open input file!"
+    #    sys.exit(os.EX_OSFILE)
+    #
+    #image3D = pickle.load(inputFile)
+    #
+    #o = filters.infiniteFocus(image3D.images, image3D.depth, clContext, clQueue)
+    #
+    v = viewer.Viewer(cmdViewerDrawCallback())
+
 def main():
     parser = OptionParser()
     parser.add_option("-g", "--generate", dest="generate", action="store_true", default=False,
                       help="Generate a 3D image from a set of 2D images")
     parser.add_option("-f", "--infinite-focus", dest="infiniteFocus", action="store_true", default=False,
                       help="Generate a 2D image with a small virtual aperture from a 3D image")
+    parser.add_option("-v", "--view", dest="viewer", action="store_true", default=False,
+                      help="Show the 3D image in an OpenGL view")
     parser.add_option("-o", "--output", dest="output",
                       help="Write output to file")
     (options, args) = parser.parse_args()
@@ -126,6 +159,8 @@ def main():
         cmdGenerate(options)
     elif options.infiniteFocus:
         cmdInfiniteFocus(options)
+    elif options.viewer:
+        cmdViewer(options)
 
 if __name__ == '__main__':
     main()

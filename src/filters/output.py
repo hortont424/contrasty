@@ -3,6 +3,7 @@ import sys
 import pyopencl as cl
 import numpy
 
+from image import *
 from PIL import Image
 
 from log import logCall
@@ -54,6 +55,8 @@ def anaglyph(image, depth, clContext, clQueue):
     mf = cl.mem_flags
 
     depthBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=depth)
+
+    image = PILToNumpy(NumpyToPIL(image).convert("L").convert("RGB"))
 
     outputR = numpy.zeros(depth.shape).astype(numpy.uint8)
     outputG = numpy.zeros(depth.shape).astype(numpy.uint8)

@@ -40,6 +40,8 @@ def cmdGenerate(options):
         print options.input, "is not a valid input directory"
         sys.exit(os.EX_NOINPUT)
 
+    outputPrefix = os.path.splitext(options.output)[0]
+
     for root, dirs, files in os.walk(options.input):
         for name in files:
             filenameMatches = re.match("([0-9]+)\.(?:jpg|jpeg)", name.lower())
@@ -52,16 +54,19 @@ def cmdGenerate(options):
             tags = readEXIFData(filename)
 
             image = PILToNumpy(Image.open(filename))
+            bcImage = filters.breathingCorrection(image, float(tags["FocusDistance"].split(" ")[0]))
 
-            images[index] = (filename, image, tags)
+            NumpyToPIL(bcImage).save("{0}-bc-{1}.jpg".format(outputPrefix, index))
+
+            images[index] = (filename, bcImage, tags)
+
+    sys.exit()
 
     # we're throwing out all sorts of information by converting to greyscale
     filtered = [filters.contrastFilter(PILToNumpy(NumpyToPIL(images[n][1]).convert("L")), clContext, clQueue) for n in range(1, 1 + len(images))]
     merged = filters.mergeImages(filtered, clContext, clQueue)
     reduced = filters.reduceImage(merged, clContext, clQueue, len(filtered))
     depth = filters.fillImage(reduced, clContext, clQueue)
-
-    outputPrefix = os.path.splitext(options.output)[0]
 
     for i, filteredImage in enumerate(filtered):
         NumpyToPIL(filteredImage).save("{0}-filtered-{1}.jpg".format(outputPrefix, i))

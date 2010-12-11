@@ -2,6 +2,7 @@ import math
 import sys
 import pyopencl as cl
 import numpy
+import numpy.numarray.nd_image as nd_image
 
 from image import *
 from PIL import Image
@@ -53,6 +54,8 @@ def anaglyph(image, depth, clContext, clQueue):
         kernelFile.close()
 
     mf = cl.mem_flags
+
+    nd_image.gaussian_filter(depth, 20, output=depth)
 
     depthBuffer = cl.Buffer(clContext, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=depth)
 

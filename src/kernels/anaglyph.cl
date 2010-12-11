@@ -16,7 +16,7 @@ __kernel void anaglyph(__global uchar * input, __global uchar * output, __global
 
     mypos = imgpos;
 
-    mypos.x += direction * (depth[gid] * 0.1);
+    mypos.x += direction * (depth[gid] * 0.2);
     mypos.x = max(min((float)mypos.x, (float)width), 0.0f);
 
     long idx = indexFromImagePosition(mypos, width, height);

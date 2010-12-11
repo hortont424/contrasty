@@ -1,20 +1,11 @@
 #!/usr/bin/env python
 
-import OpenGL
-
-OpenGL.ERROR_CHECKING = True
-
-from OpenGL.GL import *
-from OpenGL.GLUT import *
-from OpenGL.GLU import *
-
 import os
 import sys
 import re
 import numpy
 import pyopencl as cl
 import cPickle as pickle
-import viewer
 
 from optparse import OptionParser # deprecated in Python 2.7...
 from PIL import Image
@@ -26,7 +17,7 @@ from image import *
 import filters
 
 def setupOpenCL():
-    clContext = cl.create_some_context()#Context(dev_type=cl.device_type.GPU)
+    clContext = cl.Context(dev_type=cl.device_type.CPU)
 
     # Output device(s) being used for computation
     devices = "OpenCL on: "
@@ -116,22 +107,40 @@ def cmdInfiniteFocus(options):
         print "No output file specified, discarding."
 
 def cmdViewerDrawCallback(img, depth):
+    from OpenGL.GL import glBegin, glColor4f, glVertex3f, glEnd
+
     def cb():
         glBegin(GL_POINTS)
         for idx, val in numpy.ndenumerate(PILToNumpy(NumpyToPIL(img).convert("L"))):
             glColor4f(float(val) / 255.0, float(val) / 255.0, float(val) / 255.0, 1.0)
             glVertex3f(idx[1], img.shape[0] - idx[0], float(depth[idx[0],idx[1]]))
         glEnd()
-    
+
     return cb
 
 @logCall
 def cmdViewer(options):
+    import viewer
+
     # depends on --infinite-focus having already been run!
     img = PILToNumpy(Image.open("1-inf.jpg").resize((800,600)))
     depth = PILToNumpy(Image.open("1-rawdepth.jpg").resize((800,600)))
     v = viewer.Viewer(cmdViewerDrawCallback(img, depth))
-    
+
+@logCall
+def cmdAnaglyph(options):
+    clContext, clQueue = setupOpenCL()
+
+    img = PILToNumpy(Image.open("4-inf.jpg"))
+    depth = PILToNumpy(Image.open("4-depth.jpg"))
+
+    o = filters.anaglyph(img, depth, clContext, clQueue)
+
+    if options.output:
+        NumpyToPIL(o).save(options.output)
+    else:
+        print "No output file specified, discarding."
+
 def main():
     parser = OptionParser()
     parser.add_option("-g", "--generate", dest="generate", action="store_true", default=False,
@@ -140,6 +149,8 @@ def main():
                       help="Generate a 2D image with a small virtual aperture from a 3D image")
     parser.add_option("-v", "--view", dest="viewer", action="store_true", default=False,
                       help="Show the 3D image in an OpenGL view")
+    parser.add_option("-a", "--anaglyph", dest="anaglyph", action="store_true", default=False,
+                      help="Generate an anaglyph 3D image from a 3D image")
     parser.add_option("-o", "--output", dest="output",
                       help="Write output to file")
     (options, args) = parser.parse_args()
@@ -156,6 +167,8 @@ def main():
         cmdInfiniteFocus(options)
     elif options.viewer:
         cmdViewer(options)
+    elif options.anaglyph:
+        cmdAnaglyph(options)
 
 if __name__ == '__main__':
     main()

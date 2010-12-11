@@ -1,4 +1,4 @@
-inline int indexFromImagePosition(int2 imgpos, uint width, uint height, uint buckets, uint currentBucket)
+inline long indexFromImagePosition(int2 imgpos, uint width, uint height, uint buckets, uint currentBucket)
 {
     return currentBucket + (imgpos.x * buckets) + (imgpos.y * width * buckets);
 }

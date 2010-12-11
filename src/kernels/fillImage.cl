@@ -1,4 +1,4 @@
-inline int indexFromImagePosition(int2 imgpos, uint width, uint height)
+inline long indexFromImagePosition(int2 imgpos, uint width, uint height)
 {
     return imgpos.x + (imgpos.y * width);
 }

@@ -1,4 +1,4 @@
-inline int indexFromImagePosition(int2 imgpos, uint width, uint height)
+inline long indexFromImagePosition(int2 imgpos, uint width, uint height)
 {
     return imgpos.x + (imgpos.y * width);
 }
@@ -20,7 +20,7 @@ __kernel void contrastFilter(__global uchar * input, __global uchar * output, __
     int maxX = min((int)(imgpos.x + r), (int)width);
     int maxY = min((int)(imgpos.y + r), (int)height);
 
-    float totalCount = 0;//(maxX - x) + (maxY - y);
+    float totalCount = 0;
 
     float sinvsq = 36.0 / ((1.0 + 2.0 * r) * (1.0 + 2.0 * r));
 

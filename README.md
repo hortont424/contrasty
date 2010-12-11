@@ -18,6 +18,7 @@ Dependencies
 * PyOpenGL
 * numpy
 * scipy
+* termcolor
 * exiftool
 
 Usage

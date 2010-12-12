@@ -30,4 +30,4 @@ Usage
     ./contrasty.py --anaglyph image.cty -o red-and-blue.jpg
     ./contrasty.py --tilt-shift image.cty <TILT-SHIFT PARAMS?!?> -o blurry-boats.jpg
 
-    *imageDir* should be a directory of images named 1.jpg, 2.jpg, 3.jpg, and so on.
+    *imageDir* should be a directory of images named 0.jpg, 1.jpg, 2.jpg, and so on.

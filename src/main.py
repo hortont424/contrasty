@@ -54,14 +54,18 @@ def cmdGenerate(options):
             tags = readEXIFData(filename)
 
             image = PILToNumpy(Image.open(filename))
-            bcImage = filters.breathingCorrection(image, float(tags["FocusDistance"].split(" ")[0]))
 
-            NumpyToPIL(bcImage).save("{0}-bc-{1}.jpg".format(outputPrefix, index))
+            images[index] = (filename, image, tags)
 
-            images[index] = (filename, bcImage, tags)
+    minDistance = min([float(tags["FocusDistance"].split(" ")[0]) for (_,_,tags) in [images[n] for n in range(len(images))]])
+
+    breathCorrected = [filters.breathingCorrection(image, float(tags["FocusDistance"].split(" ")[0]), minDistance) for (filename, image, tags) in [images[n] for n in range(len(images))]]
+
+    for i, bcImage in enumerate(breathCorrected):
+        NumpyToPIL(bcImage).save("{0}-bc-{1}.jpg".format(outputPrefix, i))
 
     # we're throwing out all sorts of information by converting to greyscale
-    filtered = [filters.contrastFilter(PILToNumpy(NumpyToPIL(images[n][1]).convert("L")), clContext, clQueue) for n in range(1, 1 + len(images))]
+    filtered = [filters.contrastFilter(PILToNumpy(NumpyToPIL(image).convert("L")), clContext, clQueue) for image in breathCorrected]
     merged = filters.mergeImages(filtered, clContext, clQueue)
     reduced = filters.reduceImage(merged, clContext, clQueue, len(filtered))
     depth = filters.fillImage(reduced, clContext, clQueue)
@@ -76,7 +80,7 @@ def cmdGenerate(options):
 
     image3D = Image3D()
     image3D.sourceDirectory = options.input
-    image3D.images = [images[n][1] for n in range(1, 1 + len(images))]
+    image3D.images = breathCorrected
     image3D.depth = depth
 
     if options.output:

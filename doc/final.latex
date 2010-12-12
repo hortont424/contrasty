@@ -5,6 +5,8 @@
 \usepackage{courier}
 \usepackage{footmisc}
 \usepackage{listings}
+\usepackage{algorithm}
+\usepackage{algorithmic}
 \usepackage{amsmath}
 \usepackage{url}
 \usepackage{color}
@@ -27,21 +29,123 @@ This paper will explore the possibility of capturing three-dimensional data usin
 
 \section{Introduction}
 
-The human brain generally uses perspective information gleaned from having two sensors --- our eyes --- placed at different points in space in order to determine the depth of objects in a scene. However, while the loss of one eye does significantly hinder one's ability to capture depth information, the brain is still able to capture \emph{rough} depth information from other sources.
+The human brain generally uses perspective information gleaned from having two sensors --- our eyes --- placed at different points in space in order to determine the depth of objects in a scene. However, while the loss of one eye does significantly hinder one's ability to capture depth information, the brain is still able to capture \emph{rough} depth from other sources.
 
 One such source is the focal blur caused by the fact that the human eye is not a pinhole camera --- it does not have an infinitely small aperture. The brain can separate a scene into layers of depth based on where in its focal range each part of the scene comes into focus. It's this biological approach which we will attempt to reimplement as a computer vision algorithm.
 
 \section{Prior Art}
 
-\section{Implementation}
+(Adelson, 1992) presents a similar system, however they make use of a specialized plenoptic filter which allows them to capture multiple focal distances in one frame, and they utilize an offset aperture, using the displacement of out-of-focus image elements to determine depth, instead of contrast as used in this paper. Their method is much more accurate but, unlike ours, requires specialized equipment.
+
+\section{Data}
+
+The sample data used for evaluation and development of this algorithm consists of a set of series of images. Each series is of a fixed scene, and each image within the series is taken at a different focal distance, from closest to the camera towards infinity.
+
+Two scenes in particular were used for the majority of the development --- one complicated scene, with many objects of varying sizes and depths, and one simple scene (Figures \ref{fig:4-2}, \ref{fig:4-4}, and \ref{fig:4-6} are three sample frames from this set), with three flat objects of similar size, placed parallel to the plane of focus, and taking up relatively equal, large portions of the frame.
+
+All images were captured with Nikon's 50mm f/1.8D lens, giving a depth-of-field of a few centimeters, sufficiently small enough to separate a few different layers of depth.
+
+\begin{figure}
+\includegraphics[width=84.5mm]{4-2.JPG}
+\caption{Frame from simple scene (4:2, focus=59cm)}
+\label{fig:4-2}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=84.5mm]{4-4.JPG}
+\caption{Frame from simple scene (4:4, focus=70cm)}
+\label{fig:4-4}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=84.5mm]{4-6.JPG}
+\caption{Frame from simple scene (4:6, focus=84cm)}
+\label{fig:4-6}
+\end{figure}
 
 \section{Algorithm}
 
+\begin{figure*}
+\includegraphics[width=169mm]{flowcharts.eps}
+\caption{Algorithm Overview}
+\label{fig:algorithm-overview}
+\end{figure*}
+
 \subsection{Breathing Correction}
+
+The first step in our algorithm involves correcting for an imperfection in the design of the lens used to capture these images, where the focal length of the lens changes slightly with the focal distance. This results in changes in the framing of the resulting image as the point of focus is passed through the scene. Most photographic lenses have this imperfection, to varying degrees, requiring calibration for every lens (cinematic lenses, on the other hand, often internally correct for breathing, though at great monetary cost).
+
+\begin{figure}
+\includegraphics[width=84.5mm]{focusbreathing.eps}
+\caption{Framing at both ends of focus, demonstrating breathing (to scale)}
+\label{fig:focusbreathing}
+\end{figure}
+
+To correct for breathing, we take sample images at many focal distances of a point source of light near one of the corners of the image. The images are then thresholded to create a series of binary images each with a single feature: a circle of varying size, centered directly on the light source. Computing the center of mass of this feature gives us the location of the light. The ratios of distances between the light and the center of each image gives a scale factor, which can then have a curve fit to it (scale factor vs. focal distance).
+
+For the lens used in this project, the scale factor is directly proportional to focal distance --- with ten samples, \[scale=(0.0539 \cdot d_{focus}) + 0.998\]
+
+Once the scale curve has been determined, it is applied to each set of images, and all images are cropped down to the size of the smallest in the set.
 
 \subsection{Contrast Detection}
 
+Since determining the depth at which different regions of the image are in focus is crucial to this algorithm, we need a way to measure how "in-focus" a region is. It seems reasonable to look to camera manufacturers here, since they have a great deal of experience in constructing autofocus mechanisms, which must also have some measure of focus. Unfortunately the fast and accurate autofocus mechanism used by most modern DSLRs is impossible to implement after the photograph has been taken, as it depends on phase detection of two different images. However, autofocus in "live view" on a DSLR or on cheaper point-and-shoot cameras uses a simpler method, which only requires inspection of the image itself: contrast detection.
+
+Contrast detection works as a measure of focus simply because of how lens blur works: in out-of-focus regions, the size of the circle of confusion is very large, and the summing of these circles causes a smooth blur, decreasing the local contrast --- alternatively, when in-focus, the circle of confusion is very small (i.e. the image is "sharp"), and the contrast from the scene is retained.
+
+This method of contrast detection does, however, depend on there being contrast in the source scene at all. Section \ref{sec:problems-flat} will discuss this limitation in more detail.
+
+\begin{algorithm}
+\caption{Contrast Detection Kernel}
+\label{alg:contrast-kernel}
+\begin{algorithmic}
+\BEGIN
+\STATE $s \gets 36 / (1 + 2 \cdot r)^2$
+
+\FOR{$ix = -r$ \TO $r$}
+\FOR{$iy = -r$ \TO $r$}
+\STATE $gauss \gets exp(0.5 \cdot s \cdot ((ix - x)^2 + (iy - y)^2))$
+\STATE $val \gets val + abs(img_{in}[x, y] - img_{in}[ix, iy]) * gauss$
+\STATE $sum \gets sum + gauss$
+\ENDFOR
+\ENDFOR
+
+\STATE $img_{out}[x, y] = val / sum$
+\END
+\end{algorithmic}
+\end{algorithm}
+
+\begin{figure}
+\includegraphics[width=84.5mm]{4-2-C.JPG}
+\caption{Contrast-detected frame from simple scene (4:2, focus=59cm)}
+\label{fig:4-2-C}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=84.5mm]{4-6-C.JPG}
+\caption{Contrast-detected frame from simple scene (4:6, focus=70cm)}
+\label{fig:4-6-C}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=84.5mm]{4-2-C-MAX.JPG}
+\caption{Max-filtered contrast-detected frame from simple scene (4:2, focus=59cm)}
+\label{fig:4-2-C-MAX}
+\end{figure}
+
+In our contrast detection algorithm, each pixel is replaced by the weighted average of the difference between that pixel and all of the pixels in its neighborhood, as can be seen in Algorithm \ref{alg:contrast-kernel}. The resulting images have relatively bright regions in areas of high contrast, and vice versa, as can be seen in Figures \ref{fig:4-2-C} and \ref{fig:4-6-C}.
+
+After the contrast detection step, a large local maximum filter is applied to the image, resulting in Figure \ref{fig:4-2-C-MAX}. This helps to make regions of low contrast surrounded by regions of high contrast take the high contrast value, correcting a fundamental problem with the algorithm which will be discussed in \ref{sec:problems-flat}. However, it also destroys any legitimate fine detail in the depth information up to the size of the filter.
+
 \subsection{Merging and Reduction}
+
+We now have one contrast-filtered layer for each input image; the next step is to determine the depth of each pixel. To do this, we stack the layers up, and create a new image which has the index of the brightest layer for each pixel. If a pixel appears never to come into focus (it remains constant or 0 throughout all of the layers), it is discarded (given an invalid depth).
+
+\begin{figure}
+\includegraphics[width=84.5mm]{4-REDUCED.JPG}
+\caption{Reduced preliminary depth frame from simple scene (4)}
+\label{fig:4-REDUCED}
+\end{figure}
 
 \subsection{Filling}
 
@@ -50,6 +154,8 @@ One such source is the focal blur caused by the fact that the human eye is not a
 \subsection{Infinite Depth-of-Field}
 
 \subsection{Anaglyph 3D}
+
+\section{Implementation}
 
 \section{Results}
 
@@ -63,13 +169,19 @@ One such source is the focal blur caused by the fact that the human eye is not a
 
 \subsubsection{Analysis}
 
+\subsubsection{Limited Range of Depths}
+
 \subsubsection{Breathing Correction}
+
+also talk about focus exif data being inaccurate
 
 \subsubsection{Areas of Flat Color}
 
+\label{sec:problems-flat}
+
 \subsubsection{Bright Points}
 
-\subsubsection{}
+\subsubsection{Color Contrast}
 
 \section{Applications}
 
@@ -86,5 +198,6 @@ One such source is the focal blur caused by the fact that the human eye is not a
 \section{References}
 
 http://www.ncbi.nlm.nih.gov/pubmed/8728981
+http://ieeexplore.ieee.org/xpl/freeabs_all.jsp?arnumber=121783
 
 \end{document}

@@ -5,7 +5,9 @@ inline long indexFromImagePosition(int2 imgpos, uint width, uint height)
 
 __kernel void contrastFilter(__global uchar * input, __global uchar * output, __global float * gaussian, uint width, uint height, uint size)
 {
-    int gid = get_global_id(0);
+    long gid = get_global_id(0);
+    size_t gsize = get_global_size(0);
+
     char r = floor(size * 0.5f);
     int2 imgpos = {0, 0};
 
@@ -29,8 +31,14 @@ __kernel void contrastFilter(__global uchar * input, __global uchar * output, __
         for(; y <= maxY; y++)
         {
             int2 frompos = {x, y};
+            long index = indexFromImagePosition(frompos, width, height);
 
-            sample = input[indexFromImagePosition(frompos, width, height)];
+            if(index < 0 || index > gsize)
+            {
+                continue;
+            }
+
+            sample = input[index];
 
             float gval = native_exp((float) -((0.5f * ((x - imgpos.x) * (x - imgpos.x)) * sinvsq) +
                                               (0.5f * ((y - imgpos.y) * (y - imgpos.y)) * sinvsq)));

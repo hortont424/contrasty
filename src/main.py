@@ -60,8 +60,6 @@ def cmdGenerate(options):
 
             images[index] = (filename, bcImage, tags)
 
-    sys.exit()
-
     # we're throwing out all sorts of information by converting to greyscale
     filtered = [filters.contrastFilter(PILToNumpy(NumpyToPIL(images[n][1]).convert("L")), clContext, clQueue) for n in range(1, 1 + len(images))]
     merged = filters.mergeImages(filtered, clContext, clQueue)

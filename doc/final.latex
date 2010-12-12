@@ -27,6 +27,10 @@ This paper will explore the possibility of capturing three-dimensional data usin
 
 \section{Introduction}
 
+The human brain generally uses perspective information gleaned from having two sensors --- our eyes --- placed at different points in space in order to determine the depth of objects in a scene. However, while the loss of one eye does significantly hinder one's ability to capture depth information, the brain is still able to capture \emph{rough} depth information from other sources.
+
+One such source is the focal blur caused by the fact that the human eye is not a pinhole camera --- it does not have an infinitely small aperture. The brain can separate a scene into layers of depth based on where in its focal range each part of the scene comes into focus. It's this biological approach which we will attempt to reimplement as a computer vision algorithm.
+
 \section{Prior Art}
 
 \section{Implementation}
@@ -57,6 +61,16 @@ This paper will explore the possibility of capturing three-dimensional data usin
 
 \subsection{Analysis \& Known Problems}
 
+\subsubsection{Analysis}
+
+\subsubsection{Breathing Correction}
+
+\subsubsection{Areas of Flat Color}
+
+\subsubsection{Bright Points}
+
+\subsubsection{}
+
 \section{Applications}
 
 \section{Future Work}
@@ -70,5 +84,7 @@ This paper will explore the possibility of capturing three-dimensional data usin
 \section{Conclusion}
 
 \section{References}
+
+http://www.ncbi.nlm.nih.gov/pubmed/8728981
 
 \end{document}

@@ -1,0 +1,74 @@
+\documentclass{acmsiggraph}
+
+\usepackage{parskip}
+\usepackage{graphicx}
+\usepackage{courier}
+\usepackage{footmisc}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{url}
+\usepackage{color}
+\usepackage{xcolor}
+\onlineid{0}
+
+\title{Deriving Depth From a Fixed-Position Variable-Focus Camera}
+
+\author{Tim Horton\thanks{e-mail: hortot2@rpi.edu}\\Rensselaer Polytechnic Institute}
+
+\begin{document}
+
+\maketitle
+
+\section*{Abstract}
+
+Much work has been done regarding the capture of three-dimensional data from the real world into a computer. Some approaches have multiple cameras capturing from different perspectives; others use a grid of known geometry projected onto the scene and measure its deformation.
+
+This paper will explore the possibility of capturing three-dimensional data using a single camera, at a fixed point in space, and without manipulating the scene with projected light or otherwise. Instead, we will focus on the image processing technique required to extract depth information from multiple frames taken with a shallow depth-of-field at different focal distances.
+
+\section{Introduction}
+
+\section{Prior Art}
+
+\section{Implementation}
+
+\section{Algorithm}
+
+\subsection{Breathing Correction}
+
+\subsection{Contrast Detection}
+
+\subsection{Merging and Reduction}
+
+\subsection{Filling}
+
+\section{Visualization}
+
+\subsection{Infinite Depth-of-Field}
+
+\subsection{Anaglyph 3D}
+
+\section{Results}
+
+\subsection{Simple Scene}
+
+\subsection{Complicated Scene}
+
+\subsection{Performance}
+
+\subsection{Analysis \& Known Problems}
+
+\section{Applications}
+
+\section{Future Work}
+
+\subsection{Optimization of Results}
+
+\subsection{Performance Optimization}
+
+\subsection{Visualization}
+
+\section{Conclusion}
+
+\section{References}
+
+\end{document}

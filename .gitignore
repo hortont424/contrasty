@@ -4,3 +4,7 @@ doc/_build
 *.jpg
 *.cty
 *.png
+*.aux
+*.log
+*.pdf
+*.synctex.gz

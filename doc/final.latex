@@ -117,7 +117,7 @@ Since determining the depth at which different regions of the image are in focus
 \ENDFOR
 \ENDFOR
 
-\STATE $img_{out}[x, y] = val / sum$
+\STATE $img_{out}[x, y] \gets val / sum$
 \end{algorithmic}
 \end{algorithm}
 
@@ -143,49 +143,65 @@ We now have one contrast-filtered layer for each input image; the next step is t
 
 Some pixels were given an invalid depth during the reduction step, due to the fact that they seemed not to come to focus; as one final step, we fill in any holes. Filling is performed by voting --- at each "dead" pixel --- into 256 bins (one for each greyscale value) based on the value of all of the pixels in some neighborhood, and then replacing the value of the current pixel with the most-occurring other color.
 
+The filling process is repeated continuously until no invalid pixels remain.
+
 \section{Visualization}
 
 While extracting depth information by itself is interesting, outputting the depth data in a more interesting and human-parseable format seemed to be a better goal.
 
-I had initially planned to implement a few visualization methods which I later deemed too difficult; since our algorithm only gives as many levels of depth as there are input frames. With a 3cm depth-of-field, there simply aren't enough levels to implement anything depending on smooth depth information. A potential fix to this is discussed in Section \ref{sec:fitting-focus}, but was not implemented in time for this paper.
+I had initially planned to implement a few visualization methods which I later deemed too difficult with the given data, since our algorithm only gives as many levels of depth as there are input frames. With a 3cm depth-of-field, there simply aren't enough levels to implement anything depending on smooth depth information. A potential fix to this is discussed in Section \ref{sec:fitting-focus}, but was not implemented in time for this paper.
 
 \subsection{Infinite Depth-of-Field}
 
+\label{sec:infinite-dof}
+
 Since we have both depth information as well as the original frames from which this information was gleaned, we can use the depth map to selectively mask all of the in-focus regions, resulting in a completely-in-focus image, as if it had been taken with a pinhole camera.
 
-You can see the results of this visualization in Figures \ref{fig:4-INF} and \ref{fig:2-INF}. Notice especially the noise in the low-contrast background in Figure \ref{fig:2-INF}, which will be discussed in section \ref{sec:problems-flat}, but also that the pictures are --- in general --- in focus throughout.
+You can see the results of this visualization in Figures \ref{fig:4-INF} and \ref{fig:1-INF}. Notice especially the noise in the low-contrast background in Figure \ref{fig:1-INF}, which will be discussed in section \ref{sec:problems-flat}, but also that the pictures are --- in general --- in focus throughout the frame.
 
 \subsection{Anaglyph 3D}
 
-\begin{figure}[l]
+\begin{figure}[t]
 \includegraphics[width=84.5mm]{4-INF.JPG}
 \caption{Infinite focus output from simple scene (4)}
 \label{fig:4-INF}
 \end{figure}
 
-\begin{figure}[l]
-\includegraphics[width=84.5mm]{2-INF.JPG}
-\caption{Infinite focus output from complex scene (2)}
-\label{fig:2-INF}
+\begin{figure}[t]
+\includegraphics[width=84.5mm]{1-INF.JPG}
+\caption{Infinite focus output from complex scene (1)}
+\label{fig:1-INF}
 \end{figure}
 
-\begin{figure}[l]
+\begin{figure}[t]
 \includegraphics[width=84.5mm]{1-ANA.PNG}
 \caption{Anaglyph output from complex scene (1)}
 \label{fig:1-ANA}
 \end{figure}
 
-The next obvious visualization method is to map the image into three dimensions somehow. The easiest way to do this is anaglyph 3D, which is commonly used with red-cyan glasses to provide the 3D effect.
+The next obvious visualization method is to map the image into a simulated three dimensional image. The easiest way to do this is anaglyph 3D, which is commonly used with red-cyan glasses to provide the 3D effect.
+
+To create an anaglyph image, we use the normalized depth image (we output two different depth images: one where the grey value is equal to the frame at which that pixel came into focus, and one where the pixel values range from 0 to 255, normalized by increasing depth) as a displacement map onto the separate color channels of the "infinite DOF" (from Section \ref{sec:infinite-dof}) image. The red channel is shifted to the left by the depth, the blue and green channels are shifted to the right, resulting in an image similar to that seen in Figure \ref{fig:1-ANA}.
+
+Viewed through red-cyan glasses, one can certainly see the layers of depth arranged as they were in the original scene. Since there are only a few discrete layers, the image does not seem "realistic" by any means\footnote{The fact that it's greyscale doesn't help that fact at all}, but it provides an interesting visualization of the output of our approach.
 
 \section{Implementation}
+
+The majority of the skeleton of our program is implemented in Python\footnote{\url{http://www.python.org}}. However, performance-critical portions (most of the filtering operations) are implemented in OpenCL\footnote{\url{http://www.khronos.org/opencl/}}, which runs in a massively-parallel fashion at C-like speeds on either the CPU or GPU. The Python Imaging Library\footnote{\url{http://www.pythonware.com/products/pil/}} is used for image I/O (and, during development, rapid display of images); Andreas Kl\"{o}ckner's PyOpenCL\footnote{\url{http://mathema.tician.de/software/pyopencl}} is used to wrap the OpenCL API; numpy and scipy\footnote{\url{http://scipy.org/}} are used for some filtering and analysis operations, and for interfacing between PIL and PyOpenCL; PyOpenGL\footnote{\url{http://pyopengl.sourceforge.net/}} is used for an unfinished OpenGL-based depth viewer; and Phil Harvey's exiftool\footnote{\url{http://www.sno.phy.queensu.ca/~phil/exiftool/}} is used to extract focal distance metadata for the breathing correction phase.
+
+The code is all available (under the 2-clause BSD license) at \url{http://github.com/hortont424/contrasty}
+
+\subsection{Memory Limitations}
+
+While the kernels are implemented in OpenCL, and should theoretically be capable of running on a GPU (providing a large speedup, as image filtering is what GPUs are good at!), the merging and reduction kernels, as they're implemented, require the ability to operate on incredibly large textures --- upwards of 400MB in the case of 11$\times$16 megapixel layers. Finding a video card with that kind of \emph{available} memory isn't something I'm going to do for this project, so I've just been running it on the CPU.
+
+This, of course, means that turnaround times for the entire process are on the order of 450 seconds, so it takes quite a while to develop the algorithm; testing a small change takes quite a while. For part of the development time, significantly scaled images were used, but this adversely affected the accuracy of contrast detection, and all of the resolution-dependent filters were thrown off.
 
 \section{Results}
 
 \subsection{Simple Scene}
 
 \subsection{Complicated Scene}
-
-\subsection{Performance}
 
 \subsection{Analysis \& Known Problems}
 
@@ -208,6 +224,8 @@ also talk about focus exif data being inaccurate
 \section{Applications}
 
 \section{Future Work}
+
+\subsection{Using the EXIF for Depth}
 
 \subsection{Optimization of Results}
 

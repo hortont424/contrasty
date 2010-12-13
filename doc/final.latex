@@ -52,12 +52,6 @@ All images were captured with Nikon's 50mm f/1.8D lens, giving a depth-of-field 
 \end{figure}
 
 \begin{figure}
-\includegraphics[width=84.5mm]{4-4.JPG}
-\caption{Frame from simple scene (4:4, focus=70cm)}
-\label{fig:4-4}
-\end{figure}
-
-\begin{figure}
 \includegraphics[width=84.5mm]{4-6.JPG}
 \caption{Frame from simple scene (4:6, focus=84cm)}
 \label{fig:4-6}
@@ -91,30 +85,6 @@ Once the scale curve has been determined, it is applied to each set of images, a
 
 Since determining the depth at which different regions of the image are in focus is crucial to this algorithm, we need a way to measure how "in-focus" a region is. It seems reasonable to look to camera manufacturers here, since they have a great deal of experience in constructing autofocus mechanisms, which must also have some measure of focus. Unfortunately the fast and accurate autofocus mechanism used by most modern DSLRs is impossible to implement after the photograph has been taken, as it depends on phase detection of two different images. However, autofocus in "live view" on a DSLR or on cheaper point-and-shoot cameras uses a simpler method, which only requires inspection of the image itself: contrast detection.
 
-Contrast detection works as a measure of focus simply because of how lens blur works: in out-of-focus regions, the size of the circle of confusion is very large, and the summing of these circles causes a smooth blur, decreasing the local contrast --- alternatively, when in-focus, the circle of confusion is very small (i.e. the image is "sharp"), and the contrast from the scene is retained.
-
-This method of contrast detection does, however, depend on there being contrast in the source scene at all. Section \ref{sec:problems-flat} will discuss this limitation in more detail.
-
-\begin{algorithm}
-\caption{Contrast Detection Kernel}
-\label{alg:contrast-kernel}
-\begin{algorithmic}
-\BEGIN
-\STATE $s \gets 36 / (1 + 2 \cdot r)^2$
-
-\FOR{$ix = -r$ \TO $r$}
-\FOR{$iy = -r$ \TO $r$}
-\STATE $gauss \gets exp(0.5 \cdot s \cdot ((ix - x)^2 + (iy - y)^2))$
-\STATE $val \gets val + abs(img_{in}[x, y] - img_{in}[ix, iy]) * gauss$
-\STATE $sum \gets sum + gauss$
-\ENDFOR
-\ENDFOR
-
-\STATE $img_{out}[x, y] = val / sum$
-\END
-\end{algorithmic}
-\end{algorithm}
-
 \begin{figure}
 \includegraphics[width=84.5mm]{4-2-C.JPG}
 \caption{Contrast-detected frame from simple scene (4:2, focus=59cm)}
@@ -133,13 +103,35 @@ This method of contrast detection does, however, depend on there being contrast 
 \label{fig:4-2-C-MAX}
 \end{figure}
 
+\begin{algorithm}
+\caption{Contrast Detection Kernel}
+\label{alg:contrast-kernel}
+\begin{algorithmic}
+\STATE $s \gets 36 / (1 + 2 \cdot r)^2$
+
+\FOR{$ix = -r$ \TO $r$}
+\FOR{$iy = -r$ \TO $r$}
+\STATE $gauss \gets exp(0.5 \cdot s \cdot ((ix - x)^2 + (iy - y)^2))$
+\STATE $val \gets val + abs(img_{in}[x, y] - img_{in}[ix, iy]) * gauss$
+\STATE $sum \gets sum + gauss$
+\ENDFOR
+\ENDFOR
+
+\STATE $img_{out}[x, y] = val / sum$
+\end{algorithmic}
+\end{algorithm}
+
+Contrast detection works as a measure of focus simply because of how lens blur works: in out-of-focus regions, the size of the circle of confusion is very large, and the summing of these circles causes a smooth blur, decreasing the local contrast --- alternatively, when in-focus, the circle of confusion is very small (i.e. the image is "sharp"), and the contrast from the scene is retained.
+
+This method of contrast detection does, however, depend on there being contrast in the source scene at all. Section \ref{sec:problems-flat} will discuss this limitation in more detail.
+
 In our contrast detection algorithm, each pixel is replaced by the weighted average of the difference between that pixel and all of the pixels in its neighborhood, as can be seen in Algorithm \ref{alg:contrast-kernel}. The resulting images have relatively bright regions in areas of high contrast, and vice versa, as can be seen in Figures \ref{fig:4-2-C} and \ref{fig:4-6-C}.
 
 After the contrast detection step, a large local maximum filter is applied to the image, resulting in Figure \ref{fig:4-2-C-MAX}. This helps to make regions of low contrast surrounded by regions of high contrast take the high contrast value, correcting a fundamental problem with the algorithm which will be discussed in \ref{sec:problems-flat}. However, it also destroys any legitimate fine detail in the depth information up to the size of the filter.
 
 \subsection{Merging and Reduction}
 
-We now have one contrast-filtered layer for each input image; the next step is to determine the depth of each pixel. To do this, we stack the layers up, and create a new image which has the index of the brightest layer for each pixel. If a pixel appears never to come into focus (it remains constant or 0 throughout all of the layers), it is discarded (given an invalid depth).
+We now have one contrast-filtered layer for each input image; the next step is to determine the depth of each pixel. To do this, we stack the layers up, and create a new image which has the index of the brightest layer for each pixel. If a pixel appears never to come into focus (it remains constant or 0 throughout all of the layers), it is discarded (given an invalid depth). The result of this step can be seen in Figure \ref{fig:4-REDUCED}, and closely resembles the final product.
 
 \begin{figure}
 \includegraphics[width=84.5mm]{4-REDUCED.JPG}
@@ -149,9 +141,15 @@ We now have one contrast-filtered layer for each input image; the next step is t
 
 \subsection{Filling}
 
+Some pixels were given an invalid depth during the reduction step, due to the fact that they seemed not to come to focus; as one final step, we fill in any holes. Filling is performed by voting --- at each "dead" pixel --- into 255 bins (one for each greyscale value) based on the value of all of the pixels in some neighborhood, and then replacing the value of the current pixel with the most-occurring other color.
+
 \section{Visualization}
 
+While extracting depth information by itself is interesting, outputting the depth data in a more interesting and human-parseable format seemed to be a better goal.
+
 \subsection{Infinite Depth-of-Field}
+
+Since we have both depth information as well as the original frames from which this information was gleaned, we can use the depth map to selectively mask all of the in-focus regions
 
 \subsection{Anaglyph 3D}
 
@@ -197,7 +195,7 @@ also talk about focus exif data being inaccurate
 
 \section{References}
 
-http://www.ncbi.nlm.nih.gov/pubmed/8728981
-http://ieeexplore.ieee.org/xpl/freeabs_all.jsp?arnumber=121783
+$http://www.ncbi.nlm.nih.gov/pubmed/8728981
+http://ieeexplore.ieee.org/xpl/freeabs_all.jsp?arnumber=121783$
 
 \end{document}

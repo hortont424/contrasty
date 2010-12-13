@@ -6,6 +6,7 @@ inline long indexFromImagePosition(int2 imgpos, uint width, uint height)
 __kernel void fillImage(__global uchar * input, __global uchar * output, uint width, uint height)
 {
     int gid = get_global_id(0);
+    int gcount = get_global_size(0);
     char d = 21;
     char r = floor(d / 2.0f);
     int2 imgpos = {0, 0};
@@ -33,8 +34,12 @@ __kernel void fillImage(__global uchar * input, __global uchar * output, uint wi
             for(; y <= maxY; y++)
             {
                 int2 frompos = {x, y};
+                long idx = indexFromImagePosition(frompos, width, height);
 
-                sample = input[indexFromImagePosition(frompos, width, height)];
+                if(idx >= gcount)
+                    continue;
+
+                sample = input[idx];
 
                 vals[sample]++;
             }

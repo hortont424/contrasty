@@ -41,7 +41,7 @@ One such source is the focal blur caused by the fact that the human eye is not a
 
 The sample data used for evaluation and development of this algorithm consists of a set of series of images. Each series is of a fixed scene, and each image within the series is taken at a different focal distance, from closest to the camera towards infinity.
 
-Two scenes in particular were used for the majority of the development --- one complicated scene, with many objects of varying sizes and depths, and one simple scene (Figures \ref{fig:4-2}, \ref{fig:4-4}, and \ref{fig:4-6} are three sample frames from this set), with three flat objects of similar size, placed parallel to the plane of focus, and taking up relatively equal, large portions of the frame.
+Two scenes in particular were used for the majority of the development --- one complicated scene, with many objects of varying sizes and depths, and one simple scene (Figures \ref{fig:4-2} and \ref{fig:4-6} are three sample frames from this set), with three flat objects of similar size, placed parallel to the plane of focus, and taking up relatively equal, large portions of the frame.
 
 All images were captured with Nikon's 50mm f/1.8D lens, giving a depth-of-field of a few centimeters, sufficiently small enough to separate a few different layers of depth.
 
@@ -121,6 +121,12 @@ Since determining the depth at which different regions of the image are in focus
 \end{algorithmic}
 \end{algorithm}
 
+\begin{figure}
+\includegraphics[width=84.5mm]{4-REDUCED.JPG}
+\caption{Reduced preliminary depth frame from simple scene (4)}
+\label{fig:4-REDUCED}
+\end{figure}
+
 Contrast detection works as a measure of focus simply because of how lens blur works: in out-of-focus regions, the size of the circle of confusion is very large, and the summing of these circles causes a smooth blur, decreasing the local contrast --- alternatively, when in-focus, the circle of confusion is very small (i.e. the image is "sharp"), and the contrast from the scene is retained.
 
 This method of contrast detection does, however, depend on there being contrast in the source scene at all. Section \ref{sec:problems-flat} will discuss this limitation in more detail.
@@ -131,27 +137,45 @@ After the contrast detection step, a large local maximum filter is applied to th
 
 \subsection{Merging and Reduction}
 
-We now have one contrast-filtered layer for each input image; the next step is to determine the depth of each pixel. To do this, we stack the layers up, and create a new image which has the index of the brightest layer for each pixel. If a pixel appears never to come into focus (it remains constant or 0 throughout all of the layers), it is discarded (given an invalid depth). The result of this step can be seen in Figure \ref{fig:4-REDUCED}, and closely resembles the final product.
-
-\begin{figure}
-\includegraphics[width=84.5mm]{4-REDUCED.JPG}
-\caption{Reduced preliminary depth frame from simple scene (4)}
-\label{fig:4-REDUCED}
-\end{figure}
+We now have one contrast-filtered layer for each input image; the next step is to determine the depth of each pixel. To do this, we stack the layers up, and create a new image which has the index of the brightest layer for each pixel. If a pixel appears never to come into focus (it remains approximately constant or 0 throughout all of the layers), it is discarded (given an invalid depth). The result of this step can be seen in Figure \ref{fig:4-REDUCED}, and closely resembles the final product.
 
 \subsection{Filling}
 
-Some pixels were given an invalid depth during the reduction step, due to the fact that they seemed not to come to focus; as one final step, we fill in any holes. Filling is performed by voting --- at each "dead" pixel --- into 255 bins (one for each greyscale value) based on the value of all of the pixels in some neighborhood, and then replacing the value of the current pixel with the most-occurring other color.
+Some pixels were given an invalid depth during the reduction step, due to the fact that they seemed not to come to focus; as one final step, we fill in any holes. Filling is performed by voting --- at each "dead" pixel --- into 256 bins (one for each greyscale value) based on the value of all of the pixels in some neighborhood, and then replacing the value of the current pixel with the most-occurring other color.
 
 \section{Visualization}
 
 While extracting depth information by itself is interesting, outputting the depth data in a more interesting and human-parseable format seemed to be a better goal.
 
+I had initially planned to implement a few visualization methods which I later deemed too difficult; since our algorithm only gives as many levels of depth as there are input frames. With a 3cm depth-of-field, there simply aren't enough levels to implement anything depending on smooth depth information. A potential fix to this is discussed in Section \ref{sec:fitting-focus}, but was not implemented in time for this paper.
+
 \subsection{Infinite Depth-of-Field}
 
-Since we have both depth information as well as the original frames from which this information was gleaned, we can use the depth map to selectively mask all of the in-focus regions
+Since we have both depth information as well as the original frames from which this information was gleaned, we can use the depth map to selectively mask all of the in-focus regions, resulting in a completely-in-focus image, as if it had been taken with a pinhole camera.
+
+You can see the results of this visualization in Figures \ref{fig:4-INF} and \ref{fig:2-INF}. Notice especially the noise in the low-contrast background in Figure \ref{fig:2-INF}, which will be discussed in section \ref{sec:problems-flat}, but also that the pictures are --- in general --- in focus throughout.
 
 \subsection{Anaglyph 3D}
+
+\begin{figure}[l]
+\includegraphics[width=84.5mm]{4-INF.JPG}
+\caption{Infinite focus output from simple scene (4)}
+\label{fig:4-INF}
+\end{figure}
+
+\begin{figure}[l]
+\includegraphics[width=84.5mm]{2-INF.JPG}
+\caption{Infinite focus output from complex scene (2)}
+\label{fig:2-INF}
+\end{figure}
+
+\begin{figure}[l]
+\includegraphics[width=84.5mm]{1-ANA.PNG}
+\caption{Anaglyph output from complex scene (1)}
+\label{fig:1-ANA}
+\end{figure}
+
+The next obvious visualization method is to map the image into three dimensions somehow. The easiest way to do this is anaglyph 3D, which is commonly used with red-cyan glasses to provide the 3D effect.
 
 \section{Implementation}
 
@@ -188,6 +212,10 @@ also talk about focus exif data being inaccurate
 \subsection{Optimization of Results}
 
 \subsection{Performance Optimization}
+
+\subsection{Fitting the Focus}
+
+\label{sec:fitting-focus}
 
 \subsection{Visualization}
 

@@ -1,4 +1,4 @@
-\documentclass{acmsiggraph}
+\documentclass[12pt]{acmsiggraph}
 
 \usepackage{parskip}
 \usepackage{graphicx}
@@ -11,7 +11,8 @@
 \usepackage{url}
 \usepackage{color}
 \usepackage{xcolor}
-\onlineid{0}
+
+\interfootnotelinepenalty=10000
 
 \title{Deriving Depth From a Fixed-Position Variable-Focus Camera}
 
@@ -67,6 +68,8 @@ All images were captured with Nikon's 50mm f/1.8D lens, giving a depth-of-field 
 
 \subsection{Breathing Correction}
 
+\label{sec:breathing-correction}
+
 The first step in our algorithm involves correcting for an imperfection in the design of the lens used to capture these images, where the focal length of the lens changes slightly with the focal distance. This results in changes in the framing of the resulting image as the point of focus is passed through the scene. Most photographic lenses have this imperfection, to varying degrees, requiring calibration for every lens (cinematic lenses, on the other hand, often internally correct for breathing, though at great monetary cost).
 
 \begin{figure}
@@ -82,6 +85,8 @@ For the lens used in this project, the scale factor is directly proportional to 
 Once the scale curve has been determined, it is applied to each set of images, and all images are cropped down to the size of the smallest in the set.
 
 \subsection{Contrast Detection}
+
+\label{sec:contrast}
 
 Since determining the depth at which different regions of the image are in focus is crucial to this algorithm, we need a way to measure how "in-focus" a region is. It seems reasonable to look to camera manufacturers here, since they have a great deal of experience in constructing autofocus mechanisms, which must also have some measure of focus. Unfortunately the fast and accurate autofocus mechanism used by most modern DSLRs is impossible to implement after the photograph has been taken, as it depends on phase detection of two different images. However, autofocus in "live view" on a DSLR or on cheaper point-and-shoot cameras uses a simpler method, which only requires inspection of the image itself: contrast detection.
 
@@ -103,21 +108,30 @@ Since determining the depth at which different regions of the image are in focus
 \label{fig:4-2-C-MAX}
 \end{figure}
 
+Contrast detection works as a measure of focus simply because of how lens blur works: in out-of-focus regions, the size of the circle of confusion is very large, and the summing of these circles causes a smooth blur, decreasing the local contrast --- alternatively, when in-focus, the circle of confusion is very small (i.e. the image is "sharp"), and the contrast from the scene is retained.
+
+This method of contrast detection does, however, depend on there being contrast in the source scene at all. Section \ref{sec:problems-flat} will discuss this limitation in more detail.
+
+In our contrast detection algorithm, each pixel is replaced by the weighted average of the difference between that pixel and all of the pixels in its neighborhood, as can be seen in Algorithm \ref{alg:contrast-kernel}. The resulting images have relatively bright regions in areas of high contrast, and vice versa, as can be seen in Figures \ref{fig:4-2-C} and \ref{fig:4-6-C}.
+
+After the contrast detection step, a large local maximum filter is applied to the image, resulting in Figure \ref{fig:4-2-C-MAX}. This helps to make regions of low contrast surrounded by regions of high contrast take the high contrast value, correcting a fundamental problem with the algorithm which will be discussed in \ref{sec:problems-flat}. However, it also destroys any legitimate fine detail in the depth information up to the size of the filter.
+
 \begin{algorithm}
 \caption{Contrast Detection Kernel}
 \label{alg:contrast-kernel}
 \begin{algorithmic}
+\footnotesize{
 \STATE $s \gets 36 / (1 + 2 \cdot r)^2$
 
 \FOR{$ix = -r$ \TO $r$}
 \FOR{$iy = -r$ \TO $r$}
 \STATE $gauss \gets exp(0.5 \cdot s \cdot ((ix - x)^2 + (iy - y)^2))$
-\STATE $val \gets val + abs(img_{in}[x, y] - img_{in}[ix, iy]) * gauss$
+\STATE $val \gets val + |img_{in}[x, y] - img_{in}[ix, iy]| * gauss$
 \STATE $sum \gets sum + gauss$
 \ENDFOR
 \ENDFOR
 
-\STATE $img_{out}[x, y] \gets val / sum$
+\STATE $img_{out}[x, y] \gets val / sum$}
 \end{algorithmic}
 \end{algorithm}
 
@@ -127,17 +141,13 @@ Since determining the depth at which different regions of the image are in focus
 \label{fig:4-REDUCED}
 \end{figure}
 
-Contrast detection works as a measure of focus simply because of how lens blur works: in out-of-focus regions, the size of the circle of confusion is very large, and the summing of these circles causes a smooth blur, decreasing the local contrast --- alternatively, when in-focus, the circle of confusion is very small (i.e. the image is "sharp"), and the contrast from the scene is retained.
-
-This method of contrast detection does, however, depend on there being contrast in the source scene at all. Section \ref{sec:problems-flat} will discuss this limitation in more detail.
-
-In our contrast detection algorithm, each pixel is replaced by the weighted average of the difference between that pixel and all of the pixels in its neighborhood, as can be seen in Algorithm \ref{alg:contrast-kernel}. The resulting images have relatively bright regions in areas of high contrast, and vice versa, as can be seen in Figures \ref{fig:4-2-C} and \ref{fig:4-6-C}.
-
-After the contrast detection step, a large local maximum filter is applied to the image, resulting in Figure \ref{fig:4-2-C-MAX}. This helps to make regions of low contrast surrounded by regions of high contrast take the high contrast value, correcting a fundamental problem with the algorithm which will be discussed in \ref{sec:problems-flat}. However, it also destroys any legitimate fine detail in the depth information up to the size of the filter.
-
 \subsection{Merging and Reduction}
 
+\label{sec:merging-reduction}
+
 We now have one contrast-filtered layer for each input image; the next step is to determine the depth of each pixel. To do this, we stack the layers up, and create a new image which has the index of the brightest layer for each pixel. If a pixel appears never to come into focus (it remains approximately constant or 0 throughout all of the layers), it is discarded (given an invalid depth). The result of this step can be seen in Figure \ref{fig:4-REDUCED}, and closely resembles the final product.
+
+A local median filter is then applied to the depth image, to further smooth between areas of rapid change in depth. In \emph{most} cases, these rapid changes are due to unwanted noise in the depth image, however, this also results in further blurring sharp depth boundaries.
 
 \subsection{Filling}
 
@@ -149,7 +159,7 @@ The filling process is repeated continuously until no invalid pixels remain.
 
 While extracting depth information by itself is interesting, outputting the depth data in a more interesting and human-parseable format seemed to be a better goal.
 
-I had initially planned to implement a few visualization methods which I later deemed too difficult with the given data, since our algorithm only gives as many levels of depth as there are input frames. With a 3cm depth-of-field, there simply aren't enough levels to implement anything depending on smooth depth information. A potential fix to this is discussed in Section \ref{sec:fitting-focus}, but was not implemented in time for this paper.
+I had initially planned to implement a few visualization methods which I later deemed too difficult with the given data, since our algorithm only gives as many levels of depth as there are input frames. With a 3 cm depth-of-field, there simply aren't enough levels to implement anything depending on smooth depth information. A potential fix to this is discussed in Section \ref{sec:fitting-focus}, but was not implemented in time for this paper.
 
 \subsection{Infinite Depth-of-Field}
 
@@ -173,7 +183,7 @@ You can see the results of this visualization in Figures \ref{fig:4-INF} and \re
 \label{fig:1-INF}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}
 \includegraphics[width=84.5mm]{1-ANA.PNG}
 \caption{Anaglyph output from complex scene (1)}
 \label{fig:1-ANA}
@@ -183,13 +193,13 @@ The next obvious visualization method is to map the image into a simulated three
 
 To create an anaglyph image, we use the normalized depth image (we output two different depth images: one where the grey value is equal to the frame at which that pixel came into focus, and one where the pixel values range from 0 to 255, normalized by increasing depth) as a displacement map onto the separate color channels of the "infinite DOF" (from Section \ref{sec:infinite-dof}) image. The red channel is shifted to the left by the depth, the blue and green channels are shifted to the right, resulting in an image similar to that seen in Figure \ref{fig:1-ANA}.
 
-Viewed through red-cyan glasses, one can certainly see the layers of depth arranged as they were in the original scene. Since there are only a few discrete layers, the image does not seem "realistic" by any means\footnote{The fact that it's greyscale doesn't help that fact at all}, but it provides an interesting visualization of the output of our approach.
+Viewed through red-cyan glasses, one can certainly see the layers of depth arranged as they were in the original scene. Since there are only a few discrete layers (discussed further in Section \ref{sec:layers}), the image does not seem "realistic" by any means\footnote{The fact that it's greyscale doesn't help that fact at all}, but it provides an interesting visualization of the output of our approach.
 
 \section{Implementation}
 
 The majority of the skeleton of our program is implemented in Python\footnote{\url{http://www.python.org}}. However, performance-critical portions (most of the filtering operations) are implemented in OpenCL\footnote{\url{http://www.khronos.org/opencl/}}, which runs in a massively-parallel fashion at C-like speeds on either the CPU or GPU. The Python Imaging Library\footnote{\url{http://www.pythonware.com/products/pil/}} is used for image I/O (and, during development, rapid display of images); Andreas Kl\"{o}ckner's PyOpenCL\footnote{\url{http://mathema.tician.de/software/pyopencl}} is used to wrap the OpenCL API; numpy and scipy\footnote{\url{http://scipy.org/}} are used for some filtering and analysis operations, and for interfacing between PIL and PyOpenCL; PyOpenGL\footnote{\url{http://pyopengl.sourceforge.net/}} is used for an unfinished OpenGL-based depth viewer; and Phil Harvey's exiftool\footnote{\url{http://www.sno.phy.queensu.ca/~phil/exiftool/}} is used to extract focal distance metadata for the breathing correction phase.
 
-The code is all available (under the 2-clause BSD license) at \url{http://github.com/hortont424/contrasty}
+The code is all available on my GitHub\footnote{\url{http://github.com/hortont424/contrasty}} under the 2-clause BSD license.
 
 \subsection{Memory Limitations}
 
@@ -201,47 +211,166 @@ This, of course, means that turnaround times for the entire process are on the o
 
 \subsection{Simple Scene}
 
+The infinite-focus output from the simple scene is relatively accurate, and can be seen in Figure \ref{fig:4-INF}. The biggest problem with this image is that the depth map is blurred near the boundaries of each book, as discussed in Section \ref{sec:problems-flat}.
+
 \subsection{Complicated Scene}
 
-\subsection{Analysis \& Known Problems}
+Figure \ref{fig:1-INF} shows off the problem with flat surfaces discussed in Section \ref{sec:problems-flat}, as it has a vast low-contrast wall in the background. In addition, a variety of specular reflections highlight the bright-points issue discussed in Section \ref{sec:bright-points}. However, most of the image looks quite reasonable, especially given the one-meter range of focus.
 
-\subsubsection{Analysis}
+\subsection{Analysis}
+
+Overall, the results of this algorithm are only so-so. In relatively large, flat regions of high contrast (such as the lefthand-most book in scene 4, or the pen container in scene 1), it performs very well --- contrast is correctly detected, and the filtering to spread the contrast among the rest of the object performs well.
+
+The primary issue is that both small localized changes in depth and sharp edges are lost, mostly because of the maximum filter applied to the contrast (in Section \ref{sec:contrast}) and the median filter applied to the depth (in Section \ref{sec:merging-reduction})
+
+\subsection{Known Problems}
 
 \subsubsection{Limited Range of Depths}
 
+\label{sec:layers}
+
+\begin{figure}[t]
+\includegraphics[width=84.5mm]{1-DEPTH.JPG}
+\caption{Depth output from complex scene (1)}
+\label{fig:1-DEPTH}
+\end{figure}
+
+The complex scene has a total physical depth of approximately 1 meter; with a depth-of-field of approximately 3 mm\footnote{Calculated with http://www.dofmaster.com/dofjs.html} throughout that range (with the specific lens and camera used for this project), there is an absolute limit of 33 detectable levels of depth using this method. In addition, the contrast filter averages over too large a range to pick out finely detailed changes in depth (and must do so to fill in low-contrast regions), further limiting the usefulness of additional images. A faster lens would provide for more levels (going to f/1.0 would double the potential layer count, at about 20x the cost), but it's very hard to manually focus with the kind of precision required to capture all of those levels. A camera which allowed programmatic access to the focusing mechanism would be \emph{very} useful for further work on this project.
+
+This limitation reduces the potential applications of the output depth information, as it makes objects which have a smooth depth gradient appear as a single flat layer. This makes the use of this algorithm to create fake tilt-shift images (one of our original goals) somewhat less feasible.
+
 \subsubsection{Breathing Correction}
 
-also talk about focus exif data being inaccurate
+\label{sec:breathing-correction-problems}
+
+Breathing correction is vital to this algorithm --- if stacked pixels from each depth layer don't correspond to the same location in the real world, comparing their relative contrasts means \emph{nothing}. So, we must remap the pixels so that they correspond properly.
+
+Unfortunately, it seems that both the D80 and D7000 (the only cameras tested) do not accurately record the focal distance in the image file's EXIF headers; I have two images from one set which claim to be taken at the same focus, when, by inspection, they are clearly not. This is concerning because the breathing correction depends on the \emph{reported} focal distance, which is used with the breathing model to determine the scale factor --- if two pictures at differing actual focal distance get corrected the same amount, they could look even further off than without breathing correction at all.
 
 \subsubsection{Areas of Flat Color}
 
 \label{sec:problems-flat}
 
+The largest single problem with using contrast detection to determine the depth of objects is unquestionably that areas of flat color \emph{have no contrast}. Even when they come into focus, they have no contrast when viewed at any size, simply by definition.
+
+Unfortunately (for this algorithm, at least, but perhaps not for our design sensibilities) areas of flat color are a common occurrence. The larger problem is that what can be considered a "flat" area depends entirely on the resolution of the image and the size of the contrast filter --- or, if you look closely enough, every region is "flat" to some extent.
+
+This algorithm gets around this by "blurring" the detected contrast significantly --- first by using a large contrast filter, secondly with the large local-maximum filter which is applied to the contrast image. It is assumed that regions nearby areas of high contrast are probably of the same depth as the areas of high contrast themselves. This assumption is true in the case of --- for example --- a book cover: the text and images on the cover are of relatively high contrast, and the flat areas around them belong at the same depth. One should note, however, that one key area of high contrast is exactly the opposite, and instead denotes an actual (potentially very significant!) change in depth: an object's edge.
+
+Thus, the depth information around a sharp edge will be inaccurate, shifted outwards from the edge of the object by approximately the size of the contrast local maximum filter, as can be seen in Figure \ref{fig:EDGE-PROBLEM}.
+
+\begin{figure}
+\includegraphics[width=84.5mm]{edge-problem.eps}
+\caption{An example of the edge-depth-blurring problem (4)}
+\label{fig:EDGE-PROBLEM}
+\end{figure}
+
+A potential solution to this problem will be discussed in Section \ref{sec:region-detection}.
+
 \subsubsection{Bright Points}
+
+\label{sec:bright-points}
+
+\begin{figure}
+\includegraphics[width=84.5mm]{specular.jpg}
+\caption{An example of the bright-point problem (1)}
+\label{fig:SPECULAR}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=84.5mm]{ideal-bokeh.jpg}
+\caption{A simulated example of the ideal bright-point image (1)}
+\label{fig:IDEAL-BOKEH}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=84.5mm]{BRIGHT-POINT-DEPTH.JPG}
+\caption{The depth result from Figure \ref{fig:SPECULAR}}
+\label{fig:BRIGHT-POINT-DEPTH}
+\end{figure}
+
+A well-known and oft-discussed property of many photographic lenses is the pattern created by out-of-focus regions of an image, or "bokeh". It should come as no surprise that this comes up in a discussion of this project, as the properties of this pattern are key to our ability to discern areas of focus.
+
+Figure \ref{fig:SPECULAR} shows center-crops from the complex scene (1) used during the debugging of our code. One can see how the particular lens used for capturing these images seems to have a habit of leaving a brighter circular halo around the outside of the blurred point, instead of dropping off smoothly ("ideal" bokeh, which is rather rare and difficult to attain). The three types of bokeh are shown in Figure \ref{fig:BOKEH} --- ideal bokeh for photography also happens to be ideal bokeh for our application; unfortunately, it's a relatively rare quality, as lenses are often designed for optical perfection, which leads to neutral bokeh instead.
+
+Even \emph{without} perfect bokeh, it is possible that this phenomenon of bright points appearing to increase in size could still pose a problem. Consider a bright point surrounded by an entirely dull surface of a different luminosity; the local contrast of the expanding ring will \emph{always} be higher than that of the surface, resulting in concentric rings of depth, as can be seen in figure \ref{fig:BRIGHT-POINT-DEPTH}.
+
+Both of these problems could quite easily make it difficult to detect the correct depth in these situations; to avoid this, we simply looked for scenes with as few point-sources as possible.
+
+\begin{figure}
+\includegraphics[width=84.5mm]{BOKEH.JPG}
+\caption{(Fake) ideal, neutral, and bad bokeh}
+\label{fig:BOKEH}
+\end{figure}
 
 \subsubsection{Color Contrast}
 
+This problem isn't a problem with our algorithm, per se, but with our implementation. It's also the most easily fixed of this set of problems: we currently discard color information \emph{before} applying the contrast filter. This discards a large amount of contrast data that could potentially be useful --- for example, if two bordering regions have a different color but the same luminosity, they would end up having negligible contrast with the current implementation.
+
+One reasonable solution to this problem would be to apply the contrast filter to each color channel, and then take the maximum contrast for each pixel across all three channels as the actual contrast. Since we're looking to detect contrast \emph{overall}, instead of just luminance contrast, this would provide a threefold increase in the data available to this stage of the algorithm.
+
 \section{Applications}
+
+Given the lack of accuracy, it's somewhat difficult to come up with any real applications of this technique. That said, with some refinement, it's possible that it could be used in a few ways:
+
+\subsection{Microscopy}
+
+One issue with microscopic imaging is that the \emph{literally} razor-thin depth-of-field makes it difficult to have objects of even slightly differing depth in focus at the same time, making it somewhat unwieldy to use with many specimens.
+
+However, both the tiny depth-of-field and the fact that one can read incredibly precise focal distance measurements off of the focusing rings (and can also manipulate the focus in very small increments very easily) make microscopy an ideal situation for use with this algorithm, as discussed earlier.
+
+One could use this algorithm (with some amount of fine-tuning) and the infinite-depth-of-field output filter described in Section \ref{sec:infinite-dof} to create an image with a much deeper depth of field than what a microscope generates natively.
 
 \section{Future Work}
 
-\subsection{Using the EXIF for Depth}
+\label{sec:future-work}
+
+\subsection{Using the Physical Depth}
+
+The depth image created by our current implementation has each greyscale value equal to the index of the depth layer that is determined to have the greatest contrast. This index has no real-world mapping, it is simply determined by the focal distance and order of each of the input images.
+
+It would make a great deal more sense for the depth value to linearly map to depth in the real world, with the minimum and maximum greyscale values mapping to the minimum and maximum depths (or swapped around, either way is fine).
+
+This doesn't matter at all for the infinite-depth-of-field output kernel, but would improve the anaglyph output and any future visualizations greatly, and wouldn't be particularly difficult to implement.
+
+\subsection{Better Breathing Correction}
+
+As discussed in Section \ref{sec:breathing-correction-problems}, our breathing correction stage depends on potentially-inaccurate information gleaned from the image's EXIF data. While SIFT keypointing is not a workable solution (due to the fact that images at different depths vary greatly in overall texture), a different approach could potentially help solve this problem in a more reliable way. It's possible that using a method similar to that discussed in Section \ref{sec:breathing-correction} for finding the breathing coefficients might be applicable here, if applied to a carefully masked bright point in the corner of the actual source images (we have actually managed to pull this off on the complex scene (1), with hand-crafted masks and some Mathematica image filtering magic), but that would depend on those source images \emph{having} such a bright point to begin with, and as such is not sufficiently flexible.
+
+\subsection{Region Detection}
+
+\label{sec:region-detection}
+
+One potential solution to the problem outlined in Section \ref{sec:problems-flat} (where the contrast filter is blurred to fill in areas of low physical contrast, causing small local variations in depth to be lost) would be to extract connected edges, and fit closed polygons to these edges, filling the closed polygons with the depth of their edge from the inside out.
+
+There may be issues with this approach, as we haven't attempted it, and it will not deal well with large objects placed in a plane significantly not-parallel with the image plane.
 
 \subsection{Optimization of Results}
 
-\subsection{Performance Optimization}
+There are a multitude of arbitrarily-chosen parameters throughout the program: filter sizes (both the size of the contrast filter, and the size of the maximum and median filters), various openings and closings performed at various steps, the offset multiplier used in the anaglyph image construction, etc. All in all, there are quite a few dimensions of freedom when attempting to optimize the output.
+
+Considering that the entire algorithm takes hundreds of seconds to run to completion, it's very difficult to optimize these parameters by hand; an automated solution would be ideal. Perhaps by creating a depth mask by hand and then using the difference between the generated depth image with the hand-crafted image as a "fitness" function and implementing some sort of efficient search algorithm on top of this. However, the sheer CPU power required to search this space is beyond those scope of this project.
+
+We considered implementing and running the search on an extra-large-CPU Amazon EC2 instance, but time did not permit, so at the moment, we are using hand-chosen values. It's quite likely that optimization could bring a significant improvement in quality of output, as very few parameter values have been tested by hand at this point.
 
 \subsection{Fitting the Focus}
 
 \label{sec:fitting-focus}
 
-\subsection{Visualization}
+Currently, the focus layer with the greatest contrast at that pixel is chosen as the "depth" for each pixel. However, since perfect focus for that pixel could easily lay somewhere between two layers, and the contrast will fall off in both directions as the point of focus passes through the object, we could determine a model for that falloff curve, and fit the contrast to it, providing sub-layer focal accuracy.
 
 \section{Conclusion}
 
+After a great deal of experimentation, it seems clear that this algorithm is at least partially successful. It is not as effective as work that has come before (Adelson, 1992), but it also works with entirely commodity hardware that is already distributed in many households. In addition, there are many approaches detailed through Section \ref{sec:future-work} which could be used in the future to improve the accuracy of our approach.
+
+It seems that the basic premise of using contrast-detection to create a depth-map of a scene is quite feasible, and that the actual algorithm itself is all that needs modification.
+
 \section{References}
 
-$http://www.ncbi.nlm.nih.gov/pubmed/8728981
-http://ieeexplore.ieee.org/xpl/freeabs_all.jsp?arnumber=121783$
+Adelson, EH, et al. (1992). Single lens stereo with a plenoptic camera. \emph{IEEE Transactions on Pattern Analysis and Machine Intelligence}, 14(2), 99-106.
+
+Mather, G. (1996). Image blur as a pictorial depth cue. \emph{Proc Biol Sci.}, 22(263), 169-172.
+
+Rockwell, K. (2008). \emph{Bokeh}. Retrieved from http://www.kenrockwell.com/tech/bokeh.htm
 
 \end{document}
